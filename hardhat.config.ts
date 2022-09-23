@@ -1,6 +1,8 @@
 require('@matterlabs/hardhat-zksync-deploy')
+require("dotenv").config();
 
-if (process.env.deploy) {
+
+if (process.env.DEPLOY === 'true') {
   require('@matterlabs/hardhat-zksync-solc')
 }
 
