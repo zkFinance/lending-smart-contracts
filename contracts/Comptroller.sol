@@ -13,7 +13,7 @@ import "./Governance/Comp.sol";
  * @title Compound's Comptroller Contract
  * @author Compound
  */
-contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV6Storage, ComptrollerInterface, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(CToken cToken);
 
@@ -44,20 +44,20 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /// @notice Emitted when an action is paused on a market
     event ActionPaused(CToken cToken, string action, bool pauseState);
 
-    /// @notice Emitted when a new borrow-side COMP speed is calculated for a market
-    event CompBorrowSpeedUpdated(CToken indexed cToken, uint newSpeed);
+    /// @notice Emitted when a new borrow-side ZGT speed is calculated for a market
+    event ZGTBorrowSpeedUpdated(CToken indexed cToken, uint newSpeed);
 
-    /// @notice Emitted when a new supply-side COMP speed is calculated for a market
-    event CompSupplySpeedUpdated(CToken indexed cToken, uint newSpeed);
+    /// @notice Emitted when a new supply-side ZGT speed is calculated for a market
+    event ZGTSupplySpeedUpdated(CToken indexed cToken, uint newSpeed);
 
-    /// @notice Emitted when a new COMP speed is set for a contributor
-    event ContributorCompSpeedUpdated(address indexed contributor, uint newSpeed);
+    /// @notice Emitted when a new ZGT speed is set for a contributor
+    event ContributorZGTSpeedUpdated(address indexed contributor, uint newSpeed);
 
-    /// @notice Emitted when COMP is distributed to a supplier
-    event DistributedSupplierComp(CToken indexed cToken, address indexed supplier, uint compDelta, uint compSupplyIndex);
+    /// @notice Emitted when ZGT is distributed to a supplier
+    event DistributedSupplierZGT(CToken indexed cToken, address indexed supplier, uint zgtDelta, uint zgtSupplyIndex);
 
-    /// @notice Emitted when COMP is distributed to a borrower
-    event DistributedBorrowerComp(CToken indexed cToken, address indexed borrower, uint compDelta, uint compBorrowIndex);
+    /// @notice Emitted when ZGT is distributed to a borrower
+    event DistributedBorrowerZGT(CToken indexed cToken, address indexed borrower, uint zgtDelta, uint zgtBorrowIndex);
 
     /// @notice Emitted when borrow cap for a cToken is changed
     event NewBorrowCap(CToken indexed cToken, uint newBorrowCap);
@@ -65,17 +65,17 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /// @notice Emitted when borrow cap guardian is changed
     event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
 
-    /// @notice Emitted when COMP is granted by admin
-    event CompGranted(address recipient, uint amount);
+    /// @notice Emitted when ZGT is granted by admin
+    event ZGTGranted(address recipient, uint amount);
 
-    /// @notice Emitted when COMP accrued for a user has been manually adjusted.
-    event CompAccruedAdjusted(address indexed user, uint oldCompAccrued, uint newCompAccrued);
+    /// @notice Emitted when ZGT accrued for a user has been manually adjusted.
+    event ZGTAccruedAdjusted(address indexed user, uint oldCompAccrued, uint newCompAccrued);
 
-    /// @notice Emitted when COMP receivable for a user has been updated.
-    event CompReceivableUpdated(address indexed user, uint oldCompReceivable, uint newCompReceivable);
+    /// @notice Emitted when ZGT receivable for a user has been updated.
+    event ZGTReceivableUpdated(address indexed user, uint oldZGTReceivable, uint newZGTReceivable);
 
-    /// @notice The initial COMP index for a market
-    uint224 public constant compInitialIndex = 1e36;
+    /// @notice The initial ZGT index for a market
+    uint224 public constant zgtInitialIndex = 1e36;
 
     // closeFactorMantissa must be strictly greater than this value
     uint internal constant closeFactorMinMantissa = 0.05e18; // 0.05
@@ -244,8 +244,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cToken);
-        distributeSupplierComp(cToken, minter);
+        updateZGTSupplyIndex(cToken);
+        distributeSupplierZGT(cToken, minter);
 
         return uint(Error.NO_ERROR);
     }
@@ -284,8 +284,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cToken);
-        distributeSupplierComp(cToken, redeemer);
+        updateZGTSupplyIndex(cToken);
+        distributeSupplierZGT(cToken, redeemer);
 
         return uint(Error.NO_ERROR);
     }
@@ -382,8 +382,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: CToken(cToken).borrowIndex()});
-        updateCompBorrowIndex(cToken, borrowIndex);
-        distributeBorrowerComp(cToken, borrower, borrowIndex);
+        updateZGTBorrowIndex(cToken, borrowIndex);
+        distributeBorrowerZGT(cToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
@@ -430,8 +430,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: CToken(cToken).borrowIndex()});
-        updateCompBorrowIndex(cToken, borrowIndex);
-        distributeBorrowerComp(cToken, borrower, borrowIndex);
+        updateZGTBorrowIndex(cToken, borrowIndex);
+        distributeBorrowerZGT(cToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
@@ -566,9 +566,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cTokenCollateral);
-        distributeSupplierComp(cTokenCollateral, borrower);
-        distributeSupplierComp(cTokenCollateral, liquidator);
+        updateZGTSupplyIndex(cTokenCollateral);
+        distributeSupplierZGT(cTokenCollateral, borrower);
+        distributeSupplierZGT(cTokenCollateral, liquidator);
 
         return uint(Error.NO_ERROR);
     }
@@ -620,9 +620,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cToken);
-        distributeSupplierComp(cToken, src);
-        distributeSupplierComp(cToken, dst);
+        updateZGTSupplyIndex(cToken);
+        distributeSupplierZGT(cToken, src);
+        distributeSupplierZGT(cToken, dst);
 
         return uint(Error.NO_ERROR);
     }
@@ -940,10 +940,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
         cToken.isCToken(); // Sanity check to make sure its really a CToken
 
-        // Note that isComped is not in active use anymore
+        // Note that is not in active use anymore
         Market storage newMarket = markets[address(cToken)];
         newMarket.isListed = true;
-        newMarket.isComped = false;
         newMarket.collateralFactorMantissa = 0;
 
         _addMarketInternal(address(cToken));
@@ -964,20 +963,20 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     function _initializeMarket(address cToken) internal {
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
 
-        CompMarketState storage supplyState = compSupplyState[cToken];
-        CompMarketState storage borrowState = compBorrowState[cToken];
+        ZGTMarketState storage supplyState = zgtSupplyState[cToken];
+        ZGTMarketState storage borrowState = zgtBorrowState[cToken];
 
         /*
          * Update market state indices
          */
         if (supplyState.index == 0) {
             // Initialize supply state index with default value
-            supplyState.index = compInitialIndex;
+            supplyState.index = zgtInitialIndex;
         }
 
         if (borrowState.index == 0) {
             // Initialize borrow state index with default value
-            borrowState.index = compInitialIndex;
+            borrowState.index = zgtInitialIndex;
         }
 
         /*
@@ -1089,54 +1088,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         require(unitroller._acceptImplementation() == 0, "change not authorized");
     }
 
-    /// @notice Delete this function after proposal 65 is executed
-    function fixBadAccruals(address[] calldata affectedUsers, uint[] calldata amounts) external {
-        require(msg.sender == admin, "Only admin can call this function"); // Only the timelock can call this function
-        require(!proposal65FixExecuted, "Already executed this one-off function"); // Require that this function is only called once
-        require(affectedUsers.length == amounts.length, "Invalid input");
-
-        // Loop variables
-        address user;
-        uint currentAccrual;
-        uint amountToSubtract;
-        uint newAccrual;
-
-        // Iterate through all affected users
-        for (uint i = 0; i < affectedUsers.length; ++i) {
-            user = affectedUsers[i];
-            currentAccrual = compAccrued[user];
-
-            amountToSubtract = amounts[i];
-
-            // The case where the user has claimed and received an incorrect amount of COMP.
-            // The user has less currently accrued than the amount they incorrectly received.
-            if (amountToSubtract > currentAccrual) {
-                // Amount of COMP the user owes the protocol
-                uint accountReceivable = amountToSubtract - currentAccrual; // Underflow safe since amountToSubtract > currentAccrual
-
-                uint oldReceivable = compReceivable[user];
-                uint newReceivable = add_(oldReceivable, accountReceivable);
-
-                // Accounting: record the COMP debt for the user
-                compReceivable[user] = newReceivable;
-
-                emit CompReceivableUpdated(user, oldReceivable, newReceivable);
-
-                amountToSubtract = currentAccrual;
-            }
-
-            if (amountToSubtract > 0) {
-                // Subtract the bad accrual amount from what they have accrued.
-                // Users will keep whatever they have correctly accrued.
-                compAccrued[user] = newAccrual = sub_(currentAccrual, amountToSubtract);
-
-                emit CompAccruedAdjusted(user, currentAccrual, newAccrual);
-            }
-        }
-
-        proposal65FixExecuted = true; // Makes it so that this function cannot be called again
-    }
-
     /**
      * @notice Checks caller is admin, or this contract is becoming the new implementation
      */
@@ -1144,56 +1095,56 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         return msg.sender == admin || msg.sender == comptrollerImplementation;
     }
 
-    /*** Comp Distribution ***/
+    /*** ZGT Distribution ***/
 
     /**
-     * @notice Set COMP speed for a single market
-     * @param cToken The market whose COMP speed to update
-     * @param supplySpeed New supply-side COMP speed for market
-     * @param borrowSpeed New borrow-side COMP speed for market
+     * @notice Set ZGT speed for a single market
+     * @param cToken The market whose ZGT speed to update
+     * @param supplySpeed New supply-side ZGT speed for market
+     * @param borrowSpeed New borrow-side ZGT speed for market
      */
-    function setCompSpeedInternal(CToken cToken, uint supplySpeed, uint borrowSpeed) internal {
+    function setZGTSpeedInternal(CToken cToken, uint supplySpeed, uint borrowSpeed) internal {
         Market storage market = markets[address(cToken)];
-        require(market.isListed, "comp market is not listed");
+        require(market.isListed, "ZGT market is not listed");
 
-        if (compSupplySpeeds[address(cToken)] != supplySpeed) {
+        if (zgtSupplySpeeds[address(cToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
-            //  1. COMP accrued properly for the old speed, and
-            //  2. COMP accrued at the new speed starts after this block.
-            updateCompSupplyIndex(address(cToken));
+            //  1. ZGT accrued properly for the old speed, and
+            //  2. ZGT accrued at the new speed starts after this block.
+            updateZGTSupplyIndex(address(cToken));
 
             // Update speed and emit event
-            compSupplySpeeds[address(cToken)] = supplySpeed;
-            emit CompSupplySpeedUpdated(cToken, supplySpeed);
+            zgtSupplySpeeds[address(cToken)] = supplySpeed;
+            emit ZGTSupplySpeedUpdated(cToken, supplySpeed);
         }
 
-        if (compBorrowSpeeds[address(cToken)] != borrowSpeed) {
+        if (zgtBorrowSpeeds[address(cToken)] != borrowSpeed) {
             // Borrow speed updated so let's update borrow state to ensure that
-            //  1. COMP accrued properly for the old speed, and
-            //  2. COMP accrued at the new speed starts after this block.
+            //  1. ZGT accrued properly for the old speed, and
+            //  2. ZGT accrued at the new speed starts after this block.
             Exp memory borrowIndex = Exp({mantissa: cToken.borrowIndex()});
-            updateCompBorrowIndex(address(cToken), borrowIndex);
+            updateZGTBorrowIndex(address(cToken), borrowIndex);
 
             // Update speed and emit event
-            compBorrowSpeeds[address(cToken)] = borrowSpeed;
-            emit CompBorrowSpeedUpdated(cToken, borrowSpeed);
+            zgtBorrowSpeeds[address(cToken)] = borrowSpeed;
+            emit ZGTBorrowSpeedUpdated(cToken, borrowSpeed);
         }
     }
 
     /**
-     * @notice Accrue COMP to the market by updating the supply index
+     * @notice Accrue ZGT to the market by updating the supply index
      * @param cToken The market whose supply index to update
-     * @dev Index is a cumulative sum of the COMP per cToken accrued.
+     * @dev Index is a cumulative sum of the ZGT per cToken accrued.
      */
-    function updateCompSupplyIndex(address cToken) internal {
-        CompMarketState storage supplyState = compSupplyState[cToken];
-        uint supplySpeed = compSupplySpeeds[cToken];
+    function updateZGTSupplyIndex(address cToken) internal {
+        ZGTMarketState storage supplyState = zgtSupplyState[cToken];
+        uint supplySpeed = zgtSupplySpeeds[cToken];
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
             uint supplyTokens = CToken(cToken).totalSupply();
-            uint compAccrued = mul_(deltaBlocks, supplySpeed);
-            Double memory ratio = supplyTokens > 0 ? fraction(compAccrued, supplyTokens) : Double({mantissa: 0});
+            uint zgtAccrued = mul_(deltaBlocks, supplySpeed);
+            Double memory ratio = supplyTokens > 0 ? fraction(zgtAccrued, supplyTokens) : Double({mantissa: 0});
             supplyState.index = safe224(add_(Double({mantissa: supplyState.index}), ratio).mantissa, "new index exceeds 224 bits");
             supplyState.block = blockNumber;
         } else if (deltaBlocks > 0) {
@@ -1202,19 +1153,19 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Accrue COMP to the market by updating the borrow index
+     * @notice Accrue ZGT to the market by updating the borrow index
      * @param cToken The market whose borrow index to update
-     * @dev Index is a cumulative sum of the COMP per cToken accrued.
+     * @dev Index is a cumulative sum of the ZGT per cToken accrued.
      */
-    function updateCompBorrowIndex(address cToken, Exp memory marketBorrowIndex) internal {
-        CompMarketState storage borrowState = compBorrowState[cToken];
-        uint borrowSpeed = compBorrowSpeeds[cToken];
+    function updateZGTBorrowIndex(address cToken, Exp memory marketBorrowIndex) internal {
+        ZGTMarketState storage borrowState = zgtBorrowState[cToken];
+        uint borrowSpeed = zgtBorrowSpeeds[cToken];
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
             uint borrowAmount = div_(CToken(cToken).totalBorrows(), marketBorrowIndex);
-            uint compAccrued = mul_(deltaBlocks, borrowSpeed);
-            Double memory ratio = borrowAmount > 0 ? fraction(compAccrued, borrowAmount) : Double({mantissa: 0});
+            uint zgtAccrued = mul_(deltaBlocks, borrowSpeed);
+            Double memory ratio = borrowAmount > 0 ? fraction(zgtAccrued, borrowAmount) : Double({mantissa: 0});
             borrowState.index = safe224(add_(Double({mantissa: borrowState.index}), ratio).mantissa, "new index exceeds 224 bits");
             borrowState.block = blockNumber;
         } else if (deltaBlocks > 0) {
@@ -1223,206 +1174,206 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Calculate COMP accrued by a supplier and possibly transfer it to them
+     * @notice Calculate ZGT accrued by a supplier and possibly transfer it to them
      * @param cToken The market in which the supplier is interacting
-     * @param supplier The address of the supplier to distribute COMP to
+     * @param supplier The address of the supplier to distribute ZGT to
      */
-    function distributeSupplierComp(address cToken, address supplier) internal {
-        // TODO: Don't distribute supplier COMP if the user is not in the supplier market.
+    function distributeSupplierZGT(address cToken, address supplier) internal {
+        // TODO: Don't distribute supplier ZGT if the user is not in the supplier market.
         // This check should be as gas efficient as possible as distributeSupplierComp is called in many places.
         // - We really don't want to call an external contract as that's quite expensive.
 
-        CompMarketState storage supplyState = compSupplyState[cToken];
+        ZGTMarketState storage supplyState = zgtSupplyState[cToken];
         uint supplyIndex = supplyState.index;
-        uint supplierIndex = compSupplierIndex[cToken][supplier];
+        uint supplierIndex = zgtSupplierIndex[cToken][supplier];
 
-        // Update supplier's index to the current index since we are distributing accrued COMP
-        compSupplierIndex[cToken][supplier] = supplyIndex;
+        // Update supplier's index to the current index since we are distributing accrued ZGT
+        zgtSupplierIndex[cToken][supplier] = supplyIndex;
 
-        if (supplierIndex == 0 && supplyIndex >= compInitialIndex) {
+        if (supplierIndex == 0 && supplyIndex >= zgtInitialIndex) {
             // Covers the case where users supplied tokens before the market's supply state index was set.
-            // Rewards the user with COMP accrued from the start of when supplier rewards were first
+            // Rewards the user with ZGT accrued from the start of when supplier rewards were first
             // set for the market.
-            supplierIndex = compInitialIndex;
+            supplierIndex = zgtInitialIndex;
         }
 
-        // Calculate change in the cumulative sum of the COMP per cToken accrued
+        // Calculate change in the cumulative sum of the ZGT per cToken accrued
         Double memory deltaIndex = Double({mantissa: sub_(supplyIndex, supplierIndex)});
 
         uint supplierTokens = CToken(cToken).balanceOf(supplier);
 
-        // Calculate COMP accrued: cTokenAmount * accruedPerCToken
+        // Calculate ZGT accrued: cTokenAmount * accruedPerCToken
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
 
-        uint supplierAccrued = add_(compAccrued[supplier], supplierDelta);
-        compAccrued[supplier] = supplierAccrued;
+        uint supplierAccrued = add_(zgtAccrued[supplier], supplierDelta);
+        zgtAccrued[supplier] = supplierAccrued;
 
-        emit DistributedSupplierComp(CToken(cToken), supplier, supplierDelta, supplyIndex);
+        emit DistributedSupplierZGT(CToken(cToken), supplier, supplierDelta, supplyIndex);
     }
 
     /**
-     * @notice Calculate COMP accrued by a borrower and possibly transfer it to them
+     * @notice Calculate ZGT accrued by a borrower and possibly transfer it to them
      * @dev Borrowers will not begin to accrue until after the first interaction with the protocol.
      * @param cToken The market in which the borrower is interacting
-     * @param borrower The address of the borrower to distribute COMP to
+     * @param borrower The address of the borrower to distribute ZGT to
      */
-    function distributeBorrowerComp(address cToken, address borrower, Exp memory marketBorrowIndex) internal {
-        // TODO: Don't distribute supplier COMP if the user is not in the borrower market.
-        // This check should be as gas efficient as possible as distributeBorrowerComp is called in many places.
+    function distributeBorrowerZGT(address cToken, address borrower, Exp memory marketBorrowIndex) internal {
+        // TODO: Don't distribute supplier ZGT if the user is not in the borrower market.
+        // This check should be as gas efficient as possible as distributeBorrowerZGT is called in many places.
         // - We really don't want to call an external contract as that's quite expensive.
 
-        CompMarketState storage borrowState = compBorrowState[cToken];
+        ZGTMarketState storage borrowState = zgtBorrowState[cToken];
         uint borrowIndex = borrowState.index;
-        uint borrowerIndex = compBorrowerIndex[cToken][borrower];
+        uint borrowerIndex = zgtBorrowerIndex[cToken][borrower];
 
-        // Update borrowers's index to the current index since we are distributing accrued COMP
-        compBorrowerIndex[cToken][borrower] = borrowIndex;
+        // Update borrowers's index to the current index since we are distributing accrued ZGT
+        zgtBorrowerIndex[cToken][borrower] = borrowIndex;
 
-        if (borrowerIndex == 0 && borrowIndex >= compInitialIndex) {
+        if (borrowerIndex == 0 && borrowIndex >= zgtInitialIndex) {
             // Covers the case where users borrowed tokens before the market's borrow state index was set.
-            // Rewards the user with COMP accrued from the start of when borrower rewards were first
+            // Rewards the user with ZGT accrued from the start of when borrower rewards were first
             // set for the market.
-            borrowerIndex = compInitialIndex;
+            borrowerIndex = zgtInitialIndex;
         }
 
-        // Calculate change in the cumulative sum of the COMP per borrowed unit accrued
+        // Calculate change in the cumulative sum of the ZGT per borrowed unit accrued
         Double memory deltaIndex = Double({mantissa: sub_(borrowIndex, borrowerIndex)});
 
         uint borrowerAmount = div_(CToken(cToken).borrowBalanceStored(borrower), marketBorrowIndex);
 
-        // Calculate COMP accrued: cTokenAmount * accruedPerBorrowedUnit
+        // Calculate ZGT accrued: cTokenAmount * accruedPerBorrowedUnit
         uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
 
-        uint borrowerAccrued = add_(compAccrued[borrower], borrowerDelta);
-        compAccrued[borrower] = borrowerAccrued;
+        uint borrowerAccrued = add_(zgtAccrued[borrower], borrowerDelta);
+        zgtAccrued[borrower] = borrowerAccrued;
 
-        emit DistributedBorrowerComp(CToken(cToken), borrower, borrowerDelta, borrowIndex);
+        emit DistributedBorrowerZGT(CToken(cToken), borrower, borrowerDelta, borrowIndex);
     }
 
     /**
-     * @notice Calculate additional accrued COMP for a contributor since last accrual
+     * @notice Calculate additional accrued ZGT for a contributor since last accrual
      * @param contributor The address to calculate contributor rewards for
      */
     function updateContributorRewards(address contributor) public {
-        uint compSpeed = compContributorSpeeds[contributor];
+        uint zgtSpeed = zgtContributorSpeeds[contributor];
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, lastContributorBlock[contributor]);
-        if (deltaBlocks > 0 && compSpeed > 0) {
-            uint newAccrued = mul_(deltaBlocks, compSpeed);
-            uint contributorAccrued = add_(compAccrued[contributor], newAccrued);
+        if (deltaBlocks > 0 && zgtSpeed > 0) {
+            uint newAccrued = mul_(deltaBlocks, zgtSpeed);
+            uint contributorAccrued = add_(zgtAccrued[contributor], newAccrued);
 
-            compAccrued[contributor] = contributorAccrued;
+            zgtAccrued[contributor] = contributorAccrued;
             lastContributorBlock[contributor] = blockNumber;
         }
     }
 
     /**
-     * @notice Claim all the comp accrued by holder in all markets
-     * @param holder The address to claim COMP for
+     * @notice Claim all the ZGT accrued by holder in all markets
+     * @param holder The address to claim ZTG for
      */
-    function claimComp(address holder) public {
-        return claimComp(holder, allMarkets);
+    function claimZGT(address holder) public {
+        return claimZGT(holder, allMarkets);
     }
 
     /**
-     * @notice Claim all the comp accrued by holder in the specified markets
-     * @param holder The address to claim COMP for
-     * @param cTokens The list of markets to claim COMP in
+     * @notice Claim all the ZGT accrued by holder in the specified markets
+     * @param holder The address to claim ZGT for
+     * @param cTokens The list of markets to claim ZGT in
      */
-    function claimComp(address holder, CToken[] memory cTokens) public {
+    function claimZGT(address holder, CToken[] memory cTokens) public {
         address[] memory holders = new address[](1);
         holders[0] = holder;
-        claimComp(holders, cTokens, true, true);
+        claimZGT(holders, cTokens, true, true);
     }
 
     /**
-     * @notice Claim all comp accrued by the holders
-     * @param holders The addresses to claim COMP for
-     * @param cTokens The list of markets to claim COMP in
-     * @param borrowers Whether or not to claim COMP earned by borrowing
-     * @param suppliers Whether or not to claim COMP earned by supplying
+     * @notice Claim all ZGT accrued by the holders
+     * @param holders The addresses to claim ZGT for
+     * @param cTokens The list of markets to claim ZGT in
+     * @param borrowers Whether or not to claim ZGT earned by borrowing
+     * @param suppliers Whether or not to claim ZGT earned by supplying
      */
-    function claimComp(address[] memory holders, CToken[] memory cTokens, bool borrowers, bool suppliers) public {
+    function claimZGT(address[] memory holders, CToken[] memory cTokens, bool borrowers, bool suppliers) public {
         for (uint i = 0; i < cTokens.length; i++) {
             CToken cToken = cTokens[i];
             require(markets[address(cToken)].isListed, "market must be listed");
             if (borrowers == true) {
                 Exp memory borrowIndex = Exp({mantissa: cToken.borrowIndex()});
-                updateCompBorrowIndex(address(cToken), borrowIndex);
+                updateZGTBorrowIndex(address(cToken), borrowIndex);
                 for (uint j = 0; j < holders.length; j++) {
-                    distributeBorrowerComp(address(cToken), holders[j], borrowIndex);
+                    distributeBorrowerZGT(address(cToken), holders[j], borrowIndex);
                 }
             }
             if (suppliers == true) {
-                updateCompSupplyIndex(address(cToken));
+                updateZGTSupplyIndex(address(cToken));
                 for (uint j = 0; j < holders.length; j++) {
-                    distributeSupplierComp(address(cToken), holders[j]);
+                    distributeSupplierZGT(address(cToken), holders[j]);
                 }
             }
         }
         for (uint j = 0; j < holders.length; j++) {
-            compAccrued[holders[j]] = grantCompInternal(holders[j], compAccrued[holders[j]]);
+            zgtAccrued[holders[j]] = grantZGTInternal(holders[j], zgtAccrued[holders[j]]);
         }
     }
 
     /**
-     * @notice Transfer COMP to the user
-     * @dev Note: If there is not enough COMP, we do not perform the transfer all.
-     * @param user The address of the user to transfer COMP to
-     * @param amount The amount of COMP to (possibly) transfer
-     * @return The amount of COMP which was NOT transferred to the user
+     * @notice Transfer ZGT to the user
+     * @dev Note: If there is not enough ZGT, we do not perform the transfer all.
+     * @param user The address of the user to transfer ZGT to
+     * @param amount The amount of ZGT to (possibly) transfer
+     * @return The amount of ZGT which was NOT transferred to the user
      */
-    function grantCompInternal(address user, uint amount) internal returns (uint) {
-        Comp comp = Comp(getCompAddress());
-        uint compRemaining = comp.balanceOf(address(this));
+    function grantZGTInternal(address user, uint amount) internal returns (uint) {
+        Comp zgt = Comp(getCompAddress());
+        uint compRemaining = zgt.balanceOf(address(this));
         if (amount > 0 && amount <= compRemaining) {
-            comp.transfer(user, amount);
+            zgt.transfer(user, amount);
             return 0;
         }
         return amount;
     }
 
-    /*** Comp Distribution Admin ***/
+    /*** ZGT Distribution Admin ***/
 
     /**
-     * @notice Transfer COMP to the recipient
-     * @dev Note: If there is not enough COMP, we do not perform the transfer all.
-     * @param recipient The address of the recipient to transfer COMP to
-     * @param amount The amount of COMP to (possibly) transfer
+     * @notice Transfer ZGT to the recipient
+     * @dev Note: If there is not enough ZGT, we do not perform the transfer all.
+     * @param recipient The address of the recipient to transfer ZGT to
+     * @param amount The amount of ZGT to (possibly) transfer
      */
-    function _grantComp(address recipient, uint amount) public {
-        require(adminOrInitializing(), "only admin can grant comp");
-        uint amountLeft = grantCompInternal(recipient, amount);
-        require(amountLeft == 0, "insufficient comp for grant");
-        emit CompGranted(recipient, amount);
+    function _grantZGT(address recipient, uint amount) public {
+        require(adminOrInitializing(), "only admin can grant ZGT");
+        uint amountLeft = grantZGTInternal(recipient, amount);
+        require(amountLeft == 0, "insufficient ZGT for grant");
+        emit ZGTGranted(recipient, amount);
     }
 
     /**
-     * @notice Set COMP borrow and supply speeds for the specified markets.
-     * @param cTokens The markets whose COMP speed to update.
-     * @param supplySpeeds New supply-side COMP speed for the corresponding market.
-     * @param borrowSpeeds New borrow-side COMP speed for the corresponding market.
+     * @notice Set ZGT borrow and supply speeds for the specified markets.
+     * @param cTokens The markets whose ZGT speed to update.
+     * @param supplySpeeds New supply-side ZGT speed for the corresponding market.
+     * @param borrowSpeeds New borrow-side ZGT speed for the corresponding market.
      */
-    function _setCompSpeeds(CToken[] memory cTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
-        require(adminOrInitializing(), "only admin can set comp speed");
+    function _setZGTSpeeds(CToken[] memory cTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
+        require(adminOrInitializing(), "only admin can set ZGT speed");
 
         uint numTokens = cTokens.length;
         require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setCompSpeeds invalid input");
 
         for (uint i = 0; i < numTokens; ++i) {
-            setCompSpeedInternal(cTokens[i], supplySpeeds[i], borrowSpeeds[i]);
+            setZGTSpeedInternal(cTokens[i], supplySpeeds[i], borrowSpeeds[i]);
         }
     }
 
     /**
-     * @notice Set COMP speed for a single contributor
-     * @param contributor The contributor whose COMP speed to update
-     * @param compSpeed New COMP speed for contributor
+     * @notice Set ZGT speed for a single contributor
+     * @param contributor The contributor whose ZGT speed to update
+     * @param compSpeed New ZGT speed for contributor
      */
-    function _setContributorCompSpeed(address contributor, uint compSpeed) public {
-        require(adminOrInitializing(), "only admin can set comp speed");
+    function _setContributorZGTSpeed(address contributor, uint compSpeed) public {
+        require(adminOrInitializing(), "only admin can set ZGT speed");
 
-        // note that COMP speed could be set to 0 to halt liquidity rewards for a contributor
+        // note that ZGT speed could be set to 0 to halt liquidity rewards for a contributor
         updateContributorRewards(contributor);
         if (compSpeed == 0) {
             // release storage
@@ -1430,9 +1381,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         } else {
             lastContributorBlock[contributor] = getBlockNumber();
         }
-        compContributorSpeeds[contributor] = compSpeed;
+        zgtContributorSpeeds[contributor] = compSpeed;
 
-        emit ContributorCompSpeedUpdated(contributor, compSpeed);
+        emit ContributorZGTSpeedUpdated(contributor, compSpeed);
     }
 
     /**
@@ -1462,8 +1413,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Return the address of the COMP token
-     * @return The address of COMP
+     * @notice Return the address of the ZGT token
+     * @return The address of ZGT
      */
     function getCompAddress() virtual public view returns (address) {
         return 0xc00e94Cb662C3520282E6f5717214004A7f26888;

@@ -1,5 +1,8 @@
 require('@matterlabs/hardhat-zksync-deploy')
-require('@matterlabs/hardhat-zksync-solc')
+
+if (process.env.deploy) {
+  require('@matterlabs/hardhat-zksync-solc')
+}
 
 module.exports = {
   zksolc: {
@@ -25,6 +28,6 @@ module.exports = {
     },
   },
   solidity: {
-    version: '0.8.16',
+    version: '0.8.10',
   },
 }
