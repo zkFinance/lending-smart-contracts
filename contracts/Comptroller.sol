@@ -7,7 +7,7 @@ import "./PriceOracle.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
-import "./Governance/Comp.sol";
+import "./Governance/ZGT.sol";
 
 /**
  * @title zkFinance's Comptroller Contract
@@ -1324,9 +1324,9 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterface, ComptrollerE
      * @return The amount of ZGT which was NOT transferred to the user
      */
     function grantZGTInternal(address user, uint amount) internal returns (uint) {
-        Comp zgt = Comp(getCompAddress());
-        uint compRemaining = zgt.balanceOf(address(this));
-        if (amount > 0 && amount <= compRemaining) {
+        ZGT zgt = ZGT(getZGTAddress());
+        uint zgtRemaining = zgt.balanceOf(address(this));
+        if (amount > 0 && amount <= zgtRemaining) {
             zgt.transfer(user, amount);
             return 0;
         }
@@ -1358,7 +1358,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterface, ComptrollerE
         require(adminOrInitializing(), "only admin can set ZGT speed");
 
         uint numTokens = zkTokens.length;
-        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setCompSpeeds invalid input");
+        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setZGTSpeeds invalid input");
 
         for (uint i = 0; i < numTokens; ++i) {
             setZGTSpeedInternal(zkTokens[i], supplySpeeds[i], borrowSpeeds[i]);
@@ -1368,22 +1368,22 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterface, ComptrollerE
     /**
      * @notice Set ZGT speed for a single contributor
      * @param contributor The contributor whose ZGT speed to update
-     * @param compSpeed New ZGT speed for contributor
+     * @param zgtSpeed New ZGT speed for contributor
      */
-    function _setContributorZGTSpeed(address contributor, uint compSpeed) public {
+    function _setContributorZGTSpeed(address contributor, uint zgtSpeed) public {
         require(adminOrInitializing(), "only admin can set ZGT speed");
 
         // note that ZGT speed could be set to 0 to halt liquidity rewards for a contributor
         updateContributorRewards(contributor);
-        if (compSpeed == 0) {
+        if (zgtSpeed == 0) {
             // release storage
             delete lastContributorBlock[contributor];
         } else {
             lastContributorBlock[contributor] = getBlockNumber();
         }
-        zgtContributorSpeeds[contributor] = compSpeed;
+        zgtContributorSpeeds[contributor] = zgtSpeed;
 
-        emit ContributorZGTSpeedUpdated(contributor, compSpeed);
+        emit ContributorZGTSpeedUpdated(contributor, zgtSpeed);
     }
 
     /**
@@ -1416,7 +1416,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterface, ComptrollerE
      * @notice Return the address of the ZGT token
      * @return The address of ZGT
      */
-    function getCompAddress() virtual public view returns (address) {
+    function getZGTAddress() virtual public view returns (address) {
         return 0xc00e94Cb662C3520282E6f5717214004A7f26888;
     }
 }

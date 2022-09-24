@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "./ZKToken.sol";
 
-interface CompLike {
+interface ZGTLike {
     function delegate(address delegatee) external;
 }
 
@@ -217,12 +217,12 @@ contract ZKErc20 is ZKToken, ZKErc20Interface {
     }
 
     /**
-    * @notice Admin call to delegate the votes of the COMP-like underlying
-    * @param compLikeDelegatee The address to delegate votes to
-    * @dev ZKTokens whose underlying are not CompLike should revert here
+    * @notice Admin call to delegate the votes of the ZGT-like underlying
+    * @param zgtLikeDelegatee The address to delegate votes to
+    * @dev ZKTokens whose underlying are not ZGTLike should revert here
     */
-    function _delegateCompLikeTo(address compLikeDelegatee) external {
-        require(msg.sender == admin, "only the admin may set the comp-like delegate");
-        CompLike(underlying).delegate(compLikeDelegatee);
+    function _delegateZGTLikeTo(address zgtLikeDelegatee) external {
+        require(msg.sender == admin, "only the admin may set the zgt-like delegate");
+        ZGTLike(underlying).delegate(zgtLikeDelegatee);
     }
 }
