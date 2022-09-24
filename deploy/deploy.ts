@@ -47,12 +47,12 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   console.log(`${artifactJumpRateModelV2.contractName} was deployed to ${jumpRateModelV2Address}`)
 
-  // CErc20Delegate
-  const artifactCErc20Delegate = await deployer.loadArtifact('CErc20Delegate')
-  const cErc20DelegateContract = await deployer.deploy(artifactCErc20Delegate)
-  const cErc20DelegateContractAddress = cErc20DelegateContract.address
+  // ZKErc20Delegate
+  const artifactZKErc20Delegate = await deployer.loadArtifact('ZKErc20Delegate')
+  const zkErc20DelegateContract = await deployer.deploy(artifactZKErc20Delegate)
+  const zkErc20DelegateContractAddress = zkErc20DelegateContract.address
 
   console.log(
-    `${artifactCErc20Delegate.contractName} was deployed to ${cErc20DelegateContractAddress}`
+    `${artifactZKErc20Delegate.contractName} was deployed to ${zkErc20DelegateContractAddress}`
   )
 }

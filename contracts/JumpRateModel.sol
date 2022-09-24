@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "./InterestRateModel.sol";
 
 /**
-  * @title Compound's JumpRateModel Contract
+  * @title zkFinance's JumpRateModel Contract
   * @author Compound
   */
 contract JumpRateModel is InterestRateModel {

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 /**
- * @title Compound's InterestRateModel Interface
+ * @title zkFinance's InterestRateModel Interface
  * @author Compound
  */
 abstract contract InterestRateModel {

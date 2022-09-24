@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-import "./CErc20Delegate.sol";
+import "./ZKErc20Delegate.sol";
 
 /**
- * @title Compound's CDai Contract
- * @notice CToken which wraps Multi-Collateral DAI
- * @author Compound
+ * @title zkFinance's ZKDai Contract
+ * @notice ZKToken which wraps Multi-Collateral DAI
+ * @author zkFinance
  */
-contract CDaiDelegate is CErc20Delegate {
+contract ZKDaiDelegate is ZKErc20Delegate {
     /**
      * @notice DAI adapter address
      */
@@ -92,7 +92,7 @@ contract CDaiDelegate is CErc20Delegate {
         daiJoin.exit(address(this), bal / RAY);
     }
 
-    /*** CToken Overrides ***/
+    /*** ZKToken Overrides ***/
 
     /**
       * @notice Accrues DSR then applies accrued interest to total borrows and reserves
@@ -103,7 +103,7 @@ contract CDaiDelegate is CErc20Delegate {
         // Accumulate DSR interest
         PotLike(potAddress).drip();
 
-        // Accumulate CToken interest
+        // Accumulate ZKToken interest
         return super.accrueInterest();
     }
 

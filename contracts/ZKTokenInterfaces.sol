@@ -6,7 +6,7 @@ import "./InterestRateModel.sol";
 import "./EIP20NonStandardInterface.sol";
 import "./ErrorReporter.sol";
 
-contract CTokenStorage {
+contract ZKTokenStorage {
     /**
      * @dev Guard variable for re-entrancy checks
      */
@@ -44,7 +44,7 @@ contract CTokenStorage {
     address payable public pendingAdmin;
 
     /**
-     * @notice Contract which oversees inter-cToken operations
+     * @notice Contract which oversees inter-zkToken operations
      */
     ComptrollerInterface public comptroller;
 
@@ -53,7 +53,7 @@ contract CTokenStorage {
      */
     InterestRateModel public interestRateModel;
 
-    // Initial exchange rate used when minting the first CTokens (used when totalSupply = 0)
+    // Initial exchange rate used when minting the first ZKTokens (used when totalSupply = 0)
     uint internal initialExchangeRateMantissa;
 
     /**
@@ -111,11 +111,11 @@ contract CTokenStorage {
     uint public constant protocolSeizeShareMantissa = 2.8e16; //2.8%
 }
 
-abstract contract CTokenInterface is CTokenStorage {
+abstract contract ZKTokenInterface is ZKTokenStorage {
     /**
-     * @notice Indicator that this is a CToken contract (for inspection)
+     * @notice Indicator that this is a ZKToken contract (for inspection)
      */
-    bool public constant isCToken = true;
+    bool public constant isZKToken = true;
 
 
     /*** Market Events ***/
@@ -148,7 +148,7 @@ abstract contract CTokenInterface is CTokenStorage {
     /**
      * @notice Event emitted when a borrow is liquidated
      */
-    event LiquidateBorrow(address liquidator, address borrower, uint repayAmount, address cTokenCollateral, uint seizeTokens);
+    event LiquidateBorrow(address liquidator, address borrower, uint repayAmount, address zkTokenCollateral, uint seizeTokens);
 
 
     /*** Admin Events ***/
@@ -230,14 +230,14 @@ abstract contract CTokenInterface is CTokenStorage {
     function _setInterestRateModel(InterestRateModel newInterestRateModel) virtual external returns (uint);
 }
 
-contract CErc20Storage {
+contract ZKErc20Storage {
     /**
-     * @notice Underlying asset for this CToken
+     * @notice Underlying asset for this ZKToken
      */
     address public underlying;
 }
 
-abstract contract CErc20Interface is CErc20Storage {
+abstract contract ZKErc20Interface is ZKErc20Storage {
 
     /*** User Interface ***/
 
@@ -247,7 +247,7 @@ abstract contract CErc20Interface is CErc20Storage {
     function borrow(uint borrowAmount) virtual external returns (uint);
     function repayBorrow(uint repayAmount) virtual external returns (uint);
     function repayBorrowBehalf(address borrower, uint repayAmount) virtual external returns (uint);
-    function liquidateBorrow(address borrower, uint repayAmount, CTokenInterface cTokenCollateral) virtual external returns (uint);
+    function liquidateBorrow(address borrower, uint repayAmount, ZKTokenInterface zkTokenCollateral) virtual external returns (uint);
     function sweepToken(EIP20NonStandardInterface token) virtual external;
 
 
@@ -256,14 +256,14 @@ abstract contract CErc20Interface is CErc20Storage {
     function _addReserves(uint addAmount) virtual external returns (uint);
 }
 
-contract CDelegationStorage {
+contract ZKDelegationStorage {
     /**
      * @notice Implementation address for this contract
      */
     address public implementation;
 }
 
-abstract contract CDelegatorInterface is CDelegationStorage {
+abstract contract ZKDelegatorInterface is ZKDelegationStorage {
     /**
      * @notice Emitted when implementation is changed
      */
@@ -278,7 +278,7 @@ abstract contract CDelegatorInterface is CDelegationStorage {
     function _setImplementation(address implementation_, bool allowResign, bytes memory becomeImplementationData) virtual external;
 }
 
-abstract contract CDelegateInterface is CDelegationStorage {
+abstract contract ZKDelegateInterface is ZKDelegationStorage {
     /**
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @dev Should revert if any issues arise which make it unfit for delegation
