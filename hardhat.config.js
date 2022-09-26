@@ -27,11 +27,12 @@ module.exports = {
     zkSyncNetwork: 'https://zksync2-testnet.zksync.dev',
     ethNetwork: 'goerli', // Can also be the RPC URL of the network (e.g. `https://goerli.infura.io/v3/<API_KEY>`)
   },
+  defaultNetwork: "localhost",
   networks: {
     hardhat: {
       chainId: 56,
       forking: {
-        url: process.env.ARCHIVE_NODE,
+        url: process.env.SIMULATION_NODE,
       },
       timeout: 1400000,
       accounts: { mnemonic: process.env.DEPLOYER_MNEMONIC }

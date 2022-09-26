@@ -1,5 +1,5 @@
 /*
-  npx hardhat run simulations/simulate-full-deployment.ts --network hardhat
+  npx hardhat run simulations/simulate-full-deployment.js --network hardhat
 */
 
 const { expect, web3 } = require("hardhat");
@@ -11,7 +11,7 @@ async function sim() {
 
     const [admin] = await ethers.getSigners();
     await impersonate(admin.address);
-
+    console.log("admin", admin.address)
     let tx;
 
     // Depoly ZGT token
@@ -48,9 +48,22 @@ async function sim() {
     let exchangeRate = calculateExchangeRate(18)
     let name = "zkFinance USDC Token"
     let symbol = 'zkUSDC'
+    let oraclePrice = ethers.utils.parseEther("1")
+    let reserveFactor = ethers.utils.parseEther("0.25")
+    let collateralFactor = ethers.utils.parseEther("0.80")
+    let supplierSpeed = ethers.utils.parseEther("0.1")
+    let borrowerSpeed = ethers.utils.parseEther("0.2")
+    await deployToken(underlyingAddress, comptroller, jumpRateModelV2, oracle, zkErc20Delegate, exchangeRate, name, symbol, oraclePrice, reserveFactor, collateralFactor, supplierSpeed, borrowerSpeed, admin)
+}
 
-    const zkUSDC = await deploy("ZKErc20Delegator", underlyingAddress, comptroller._address, jumpRateModelV2._address, exchangeRate, name, symbol, 8, admin.address, zkErc20Delegate, "0x").send({ from: admin.address });
-
+async function deployToken(underlyingAddress, comptroller, jumpRateModelV2, oracle, zkErc20Delegate, exchangeRate, name, symbol, oraclePrice, reserveFactor, collateralFactor, supplierSpeed, borrowerSpeed, admin) {
+    const zkToken = await deploy("ZKErc20Delegator", underlyingAddress, comptroller._address, jumpRateModelV2._address, exchangeRate, name, symbol, 8, admin.address, zkErc20Delegate._address, "0x").send({ from: admin.address });
+    await zkToken.methods._setReserveFactor(reserveFactor).send({ from: admin.address })
+    await oracle.methods.setDirectPrice(underlyingAddress, oraclePrice).send({ from: admin.address })
+    await comptroller.methods._supportMarket(zkToken._address).send({ from: admin.address })
+    await comptroller.methods._setCollateralFactor(zkToken._address, collateralFactor).send({ from: admin.address })
+    await comptroller.methods._setZGTSpeeds([zkToken._address], [supplierSpeed], [borrowerSpeed]).send({ from: admin.address })
+    console.log(`Deployed ${symbol} token to ${zkToken._address}`);
 }
 
 sim()
