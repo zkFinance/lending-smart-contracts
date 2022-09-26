@@ -14,11 +14,11 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const owner = await wallet.getAddress()
 
   // Comp
-  const artifactComp = await deployer.loadArtifact('Comp')
-  const compContract = await deployer.deploy(artifactComp, [owner])
-  const compAddress = compContract.address
+  const artifactZGT = await deployer.loadArtifact('ZGT')
+  const compContract = await deployer.deploy(artifactZGT, [owner])
+  const zgtAddress = compContract.address
 
-  console.log(`${artifactComp.contractName} was deployed to ${compAddress}`)
+  console.log(`${artifactZGT.contractName} was deployed to ${zgtAddress}`)
 
   // Comptroller
   const artifactComptroller = await deployer.loadArtifact('Comptroller')

@@ -8,7 +8,7 @@ import "./InterestRateModel.sol";
  * @author Compound (modified by Dharma Labs, refactored by Arr00)
  * @notice Version 2 modifies Version 1 by enabling updateable parameters.
  */
-abstract contract JumpRateModelV2 is InterestRateModel {
+contract JumpRateModelV2 is InterestRateModel {
     event NewInterestParams(
         uint256 baseRatePerBlock,
         uint256 multiplierPerBlock,
@@ -62,7 +62,7 @@ abstract contract JumpRateModelV2 is InterestRateModel {
         uint256 jumpMultiplierPerYear,
         uint256 kink_,
         address owner_
-    ) internal {
+    ) {
         owner = owner_;
 
         updateJumpRateModelInternal(
