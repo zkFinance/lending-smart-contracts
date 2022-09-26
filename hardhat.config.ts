@@ -30,6 +30,7 @@ module.exports = {
   defaultNetwork: "localhost",
   networks: {
     hardhat: {
+      zksync: true,
       chainId: 56,
       forking: {
         url: process.env.SIMULATION_NODE,

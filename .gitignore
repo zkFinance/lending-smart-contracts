@@ -26,5 +26,7 @@ pnpm-debug.log*
 
 # Hardhat
 cache
+cache-zk
 artifacts
+artifacts-zk
 .env
