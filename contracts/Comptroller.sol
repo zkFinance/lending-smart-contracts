@@ -11,7 +11,7 @@ import "./Governance/ZGT.sol";
 
 /**
  * @title zkFinance's Comptroller Contract
- * @author Compound
+ * @author zkFinance
  */
 contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market

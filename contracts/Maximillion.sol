@@ -5,7 +5,7 @@ import "./ZKEther.sol";
 
 /**
  * @title zkFinance's Maximillion Contract
- * @author Compound
+ * @author zkFinance
  */
 contract Maximillion {
     /**
