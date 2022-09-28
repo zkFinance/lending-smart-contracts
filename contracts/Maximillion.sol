@@ -1,48 +1,48 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-import "./CEther.sol";
+import "./ZKEther.sol";
 
 /**
- * @title Compound's Maximillion Contract
- * @author Compound
+ * @title zkFinance's Maximillion Contract
+ * @author zkFinance
  */
 contract Maximillion {
     /**
-     * @notice The default cEther market to repay in
+     * @notice The default zkEther market to repay in
      */
-    CEther public cEther;
+    ZKEther public zkEther;
 
     /**
-     * @notice Construct a Maximillion to repay max in a CEther market
+     * @notice Construct a Maximillion to repay max in a ZKEther market
      */
-    constructor(CEther cEther_) public {
-        cEther = cEther_;
+    constructor(ZKEther zkEther_) public {
+        zkEther = zkEther_;
     }
 
     /**
-     * @notice msg.sender sends Ether to repay an account's borrow in the cEther market
+     * @notice msg.sender sends Ether to repay an account's borrow in the zkEther market
      * @dev The provided Ether is applied towards the borrow balance, any excess is refunded
      * @param borrower The address of the borrower account to repay on behalf of
      */
     function repayBehalf(address borrower) public payable {
-        repayBehalfExplicit(borrower, cEther);
+        repayBehalfExplicit(borrower, zkEther);
     }
 
     /**
-     * @notice msg.sender sends Ether to repay an account's borrow in a cEther market
+     * @notice msg.sender sends Ether to repay an account's borrow in a zkEther market
      * @dev The provided Ether is applied towards the borrow balance, any excess is refunded
      * @param borrower The address of the borrower account to repay on behalf of
-     * @param cEther_ The address of the cEther contract to repay in
+     * @param zkEther_ The address of the zkEther contract to repay in
      */
-    function repayBehalfExplicit(address borrower, CEther cEther_) public payable {
+    function repayBehalfExplicit(address borrower, ZKEther zkEther_) public payable {
         uint received = msg.value;
-        uint borrows = cEther_.borrowBalanceCurrent(borrower);
+        uint borrows = zkEther_.borrowBalanceCurrent(borrower);
         if (received > borrows) {
-            cEther_.repayBorrowBehalf{value: borrows}(borrower);
+            zkEther_.repayBorrowBehalf{value: borrows}(borrower);
             payable(msg.sender).transfer(received - borrows);
         } else {
-            cEther_.repayBorrowBehalf{value: received}(borrower);
+            zkEther_.repayBorrowBehalf{value: received}(borrower);
         }
     }
 }

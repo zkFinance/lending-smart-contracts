@@ -14,11 +14,11 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const owner = await wallet.getAddress()
 
   // Comp
-  const artifactComp = await deployer.loadArtifact('Comp')
-  const compContract = await deployer.deploy(artifactComp, [owner])
-  const compAddress = compContract.address
+  const artifactZGT = await deployer.loadArtifact('ZGT')
+  const compContract = await deployer.deploy(artifactZGT, [owner])
+  const zgtAddress = compContract.address
 
-  console.log(`${artifactComp.contractName} was deployed to ${compAddress}`)
+  console.log(`${artifactZGT.contractName} was deployed to ${zgtAddress}`)
 
   // Comptroller
   const artifactComptroller = await deployer.loadArtifact('Comptroller')
@@ -47,12 +47,12 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   console.log(`${artifactJumpRateModelV2.contractName} was deployed to ${jumpRateModelV2Address}`)
 
-  // CErc20Delegate
-  const artifactCErc20Delegate = await deployer.loadArtifact('CErc20Delegate')
-  const cErc20DelegateContract = await deployer.deploy(artifactCErc20Delegate)
-  const cErc20DelegateContractAddress = cErc20DelegateContract.address
+  // ZKErc20Delegate
+  const artifactZKErc20Delegate = await deployer.loadArtifact('ZKErc20Delegate')
+  const zkErc20DelegateContract = await deployer.deploy(artifactZKErc20Delegate)
+  const zkErc20DelegateContractAddress = zkErc20DelegateContract.address
 
   console.log(
-    `${artifactCErc20Delegate.contractName} was deployed to ${cErc20DelegateContractAddress}`
+    `${artifactZKErc20Delegate.contractName} was deployed to ${zkErc20DelegateContractAddress}`
   )
 }

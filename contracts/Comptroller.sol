@@ -1,33 +1,33 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-import "./CToken.sol";
+import "./ZKToken.sol";
 import "./ErrorReporter.sol";
 import "./PriceOracle.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
-import "./Governance/Comp.sol";
+import "./Governance/ZGT.sol";
 
 /**
- * @title Compound's Comptroller Contract
- * @author Compound
+ * @title zkFinance's Comptroller Contract
+ * @author zkFinance
  */
-contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
-    event MarketListed(CToken cToken);
+    event MarketListed(ZKToken zkToken);
 
     /// @notice Emitted when an account enters a market
-    event MarketEntered(CToken cToken, address account);
+    event MarketEntered(ZKToken zkToken, address account);
 
     /// @notice Emitted when an account exits a market
-    event MarketExited(CToken cToken, address account);
+    event MarketExited(ZKToken zkToken, address account);
 
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint oldCloseFactorMantissa, uint newCloseFactorMantissa);
 
     /// @notice Emitted when a collateral factor is changed by admin
-    event NewCollateralFactor(CToken cToken, uint oldCollateralFactorMantissa, uint newCollateralFactorMantissa);
+    event NewCollateralFactor(ZKToken zkToken, uint oldCollateralFactorMantissa, uint newCollateralFactorMantissa);
 
     /// @notice Emitted when liquidation incentive is changed by admin
     event NewLiquidationIncentive(uint oldLiquidationIncentiveMantissa, uint newLiquidationIncentiveMantissa);
@@ -42,40 +42,40 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     event ActionPaused(string action, bool pauseState);
 
     /// @notice Emitted when an action is paused on a market
-    event ActionPaused(CToken cToken, string action, bool pauseState);
+    event ActionPaused(ZKToken zkToken, string action, bool pauseState);
 
-    /// @notice Emitted when a new borrow-side COMP speed is calculated for a market
-    event CompBorrowSpeedUpdated(CToken indexed cToken, uint newSpeed);
+    /// @notice Emitted when a new borrow-side ZGT speed is calculated for a market
+    event ZGTBorrowSpeedUpdated(ZKToken indexed zkToken, uint newSpeed);
 
-    /// @notice Emitted when a new supply-side COMP speed is calculated for a market
-    event CompSupplySpeedUpdated(CToken indexed cToken, uint newSpeed);
+    /// @notice Emitted when a new supply-side ZGT speed is calculated for a market
+    event ZGTSupplySpeedUpdated(ZKToken indexed zkToken, uint newSpeed);
 
-    /// @notice Emitted when a new COMP speed is set for a contributor
-    event ContributorCompSpeedUpdated(address indexed contributor, uint newSpeed);
+    /// @notice Emitted when a new ZGT speed is set for a contributor
+    event ContributorZGTSpeedUpdated(address indexed contributor, uint newSpeed);
 
-    /// @notice Emitted when COMP is distributed to a supplier
-    event DistributedSupplierComp(CToken indexed cToken, address indexed supplier, uint compDelta, uint compSupplyIndex);
+    /// @notice Emitted when ZGT is distributed to a supplier
+    event DistributedSupplierZGT(ZKToken indexed zkToken, address indexed supplier, uint zgtDelta, uint zgtSupplyIndex);
 
-    /// @notice Emitted when COMP is distributed to a borrower
-    event DistributedBorrowerComp(CToken indexed cToken, address indexed borrower, uint compDelta, uint compBorrowIndex);
+    /// @notice Emitted when ZGT is distributed to a borrower
+    event DistributedBorrowerZGT(ZKToken indexed zkToken, address indexed borrower, uint zgtDelta, uint zgtBorrowIndex);
 
-    /// @notice Emitted when borrow cap for a cToken is changed
-    event NewBorrowCap(CToken indexed cToken, uint newBorrowCap);
+    /// @notice Emitted when borrow cap for a zkToken is changed
+    event NewBorrowCap(ZKToken indexed zkToken, uint newBorrowCap);
 
     /// @notice Emitted when borrow cap guardian is changed
     event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
 
-    /// @notice Emitted when COMP is granted by admin
-    event CompGranted(address recipient, uint amount);
+    /// @notice Emitted when ZGT is granted by admin
+    event ZGTGranted(address recipient, uint amount);
 
-    /// @notice Emitted when COMP accrued for a user has been manually adjusted.
-    event CompAccruedAdjusted(address indexed user, uint oldCompAccrued, uint newCompAccrued);
+    /// @notice Emitted when ZGT accrued for a user has been manually adjusted.
+    event ZGTAccruedAdjusted(address indexed user, uint oldCompAccrued, uint newCompAccrued);
 
-    /// @notice Emitted when COMP receivable for a user has been updated.
-    event CompReceivableUpdated(address indexed user, uint oldCompReceivable, uint newCompReceivable);
+    /// @notice Emitted when ZGT receivable for a user has been updated.
+    event ZGTReceivableUpdated(address indexed user, uint oldZGTReceivable, uint newZGTReceivable);
 
-    /// @notice The initial COMP index for a market
-    uint224 public constant compInitialIndex = 1e36;
+    /// @notice The initial ZGT index for a market
+    uint224 public constant zgtInitialIndex = 1e36;
 
     // closeFactorMantissa must be strictly greater than this value
     uint internal constant closeFactorMinMantissa = 0.05e18; // 0.05
@@ -97,8 +97,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      * @param account The address of the account to pull assets for
      * @return A dynamic list with the assets the account has entered
      */
-    function getAssetsIn(address account) external view returns (CToken[] memory) {
-        CToken[] memory assetsIn = accountAssets[account];
+    function getAssetsIn(address account) external view returns (ZKToken[] memory) {
+        ZKToken[] memory assetsIn = accountAssets[account];
 
         return assetsIn;
     }
@@ -106,26 +106,26 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /**
      * @notice Returns whether the given account is entered in the given asset
      * @param account The address of the account to check
-     * @param cToken The cToken to check
+     * @param zkToken The zkToken to check
      * @return True if the account is in the asset, otherwise false.
      */
-    function checkMembership(address account, CToken cToken) external view returns (bool) {
-        return markets[address(cToken)].accountMembership[account];
+    function checkMembership(address account, ZKToken zkToken) external view returns (bool) {
+        return markets[address(zkToken)].accountMembership[account];
     }
 
     /**
      * @notice Add assets to be included in account liquidity calculation
-     * @param cTokens The list of addresses of the cToken markets to be enabled
+     * @param zkTokens The list of addresses of the zkToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
      */
-    function enterMarkets(address[] memory cTokens) override public returns (uint[] memory) {
-        uint len = cTokens.length;
+    function enterMarkets(address[] memory zkTokens) override public returns (uint[] memory) {
+        uint len = zkTokens.length;
 
         uint[] memory results = new uint[](len);
         for (uint i = 0; i < len; i++) {
-            CToken cToken = CToken(cTokens[i]);
+            ZKToken zkToken = ZKToken(zkTokens[i]);
 
-            results[i] = uint(addToMarketInternal(cToken, msg.sender));
+            results[i] = uint(addToMarketInternal(zkToken, msg.sender));
         }
 
         return results;
@@ -133,12 +133,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Add the market to the borrower's "assets in" for liquidity calculations
-     * @param cToken The market to enter
+     * @param zkToken The market to enter
      * @param borrower The address of the account to modify
      * @return Success indicator for whether the market was entered
      */
-    function addToMarketInternal(CToken cToken, address borrower) internal returns (Error) {
-        Market storage marketToJoin = markets[address(cToken)];
+    function addToMarketInternal(ZKToken zkToken, address borrower) internal returns (Error) {
+        Market storage marketToJoin = markets[address(zkToken)];
 
         if (!marketToJoin.isListed) {
             // market is not listed, cannot join
@@ -156,9 +156,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         //  that is, only when we need to perform liquidity checks
         //  and not whenever we want to check if an account is in a particular market
         marketToJoin.accountMembership[borrower] = true;
-        accountAssets[borrower].push(cToken);
+        accountAssets[borrower].push(zkToken);
 
-        emit MarketEntered(cToken, borrower);
+        emit MarketEntered(zkToken, borrower);
 
         return Error.NO_ERROR;
     }
@@ -167,13 +167,13 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      * @notice Removes asset from sender's account liquidity calculation
      * @dev Sender must not have an outstanding borrow balance in the asset,
      *  or be providing necessary collateral for an outstanding borrow.
-     * @param cTokenAddress The address of the asset to be removed
+     * @param zkTokenAddress The address of the asset to be removed
      * @return Whether or not the account successfully exited the market
      */
-    function exitMarket(address cTokenAddress) override external returns (uint) {
-        CToken cToken = CToken(cTokenAddress);
-        /* Get sender tokensHeld and amountOwed underlying from the cToken */
-        (uint oErr, uint tokensHeld, uint amountOwed, ) = cToken.getAccountSnapshot(msg.sender);
+    function exitMarket(address zkTokenAddress) override external returns (uint) {
+        ZKToken zkToken = ZKToken(zkTokenAddress);
+        /* Get sender tokensHeld and amountOwed underlying from the zkToken */
+        (uint oErr, uint tokensHeld, uint amountOwed, ) = zkToken.getAccountSnapshot(msg.sender);
         require(oErr == 0, "exitMarket: getAccountSnapshot failed"); // semi-opaque error code
 
         /* Fail if the sender has a borrow balance */
@@ -182,28 +182,28 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         /* Fail if the sender is not permitted to redeem all of their tokens */
-        uint allowed = redeemAllowedInternal(cTokenAddress, msg.sender, tokensHeld);
+        uint allowed = redeemAllowedInternal(zkTokenAddress, msg.sender, tokensHeld);
         if (allowed != 0) {
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
 
-        Market storage marketToExit = markets[address(cToken)];
+        Market storage marketToExit = markets[address(zkToken)];
 
         /* Return true if the sender is not already ‘in’ the market */
         if (!marketToExit.accountMembership[msg.sender]) {
             return uint(Error.NO_ERROR);
         }
 
-        /* Set cToken account membership to false */
+        /* Set zkToken account membership to false */
         delete marketToExit.accountMembership[msg.sender];
 
-        /* Delete cToken from the account’s list of assets */
+        /* Delete zkToken from the account’s list of assets */
         // load into memory for faster iteration
-        CToken[] memory userAssetList = accountAssets[msg.sender];
+        ZKToken[] memory userAssetList = accountAssets[msg.sender];
         uint len = userAssetList.length;
         uint assetIndex = len;
         for (uint i = 0; i < len; i++) {
-            if (userAssetList[i] == cToken) {
+            if (userAssetList[i] == zkToken) {
                 assetIndex = i;
                 break;
             }
@@ -213,11 +213,11 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         assert(assetIndex < len);
 
         // copy last item in list to location of item to be removed, reduce length by 1
-        CToken[] storage storedList = accountAssets[msg.sender];
+        ZKToken[] storage storedList = accountAssets[msg.sender];
         storedList[assetIndex] = storedList[storedList.length - 1];
         storedList.pop();
 
-        emit MarketExited(cToken, msg.sender);
+        emit MarketExited(zkToken, msg.sender);
 
         return uint(Error.NO_ERROR);
     }
@@ -226,40 +226,40 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
-     * @param cToken The market to verify the mint against
+     * @param zkToken The market to verify the mint against
      * @param minter The account which would get the minted tokens
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address cToken, address minter, uint mintAmount) override external returns (uint) {
+    function mintAllowed(address zkToken, address minter, uint mintAmount) override external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!mintGuardianPaused[cToken], "mint is paused");
+        require(!mintGuardianPaused[zkToken], "mint is paused");
 
         // Shh - currently unused
         minter;
         mintAmount;
 
-        if (!markets[cToken].isListed) {
+        if (!markets[zkToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cToken);
-        distributeSupplierComp(cToken, minter);
+        updateZGTSupplyIndex(zkToken);
+        distributeSupplierZGT(zkToken, minter);
 
         return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Validates mint and reverts on rejection. May emit logs.
-     * @param cToken Asset being minted
+     * @param zkToken Asset being minted
      * @param minter The address minting the tokens
      * @param actualMintAmount The amount of the underlying asset being minted
      * @param mintTokens The number of tokens being minted
      */
-    function mintVerify(address cToken, address minter, uint actualMintAmount, uint mintTokens) override external {
+    function mintVerify(address zkToken, address minter, uint actualMintAmount, uint mintTokens) override external {
         // Shh - currently unused
-        cToken;
+        zkToken;
         minter;
         actualMintAmount;
         mintTokens;
@@ -272,36 +272,36 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
-     * @param cToken The market to verify the redeem against
+     * @param zkToken The market to verify the redeem against
      * @param redeemer The account which would redeem the tokens
-     * @param redeemTokens The number of cTokens to exchange for the underlying asset in the market
+     * @param redeemTokens The number of zkTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address cToken, address redeemer, uint redeemTokens) override external returns (uint) {
-        uint allowed = redeemAllowedInternal(cToken, redeemer, redeemTokens);
+    function redeemAllowed(address zkToken, address redeemer, uint redeemTokens) override external returns (uint) {
+        uint allowed = redeemAllowedInternal(zkToken, redeemer, redeemTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cToken);
-        distributeSupplierComp(cToken, redeemer);
+        updateZGTSupplyIndex(zkToken);
+        distributeSupplierZGT(zkToken, redeemer);
 
         return uint(Error.NO_ERROR);
     }
 
-    function redeemAllowedInternal(address cToken, address redeemer, uint redeemTokens) internal view returns (uint) {
-        if (!markets[cToken].isListed) {
+    function redeemAllowedInternal(address zkToken, address redeemer, uint redeemTokens) internal view returns (uint) {
+        if (!markets[zkToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
-        if (!markets[cToken].accountMembership[redeemer]) {
+        if (!markets[zkToken].accountMembership[redeemer]) {
             return uint(Error.NO_ERROR);
         }
 
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(redeemer, CToken(cToken), redeemTokens, 0);
+        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(redeemer, ZKToken(zkToken), redeemTokens, 0);
         if (err != Error.NO_ERROR) {
             return uint(err);
         }
@@ -314,14 +314,14 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Validates redeem and reverts on rejection. May emit logs.
-     * @param cToken Asset being redeemed
+     * @param zkToken Asset being redeemed
      * @param redeemer The address redeeming the tokens
      * @param redeemAmount The amount of the underlying asset being redeemed
      * @param redeemTokens The number of tokens being redeemed
      */
-    function redeemVerify(address cToken, address redeemer, uint redeemAmount, uint redeemTokens) override external {
+    function redeemVerify(address zkToken, address redeemer, uint redeemAmount, uint redeemTokens) override external {
         // Shh - currently unused
-        cToken;
+        zkToken;
         redeemer;
 
         // Require tokens is zero or amount is also zero
@@ -332,47 +332,47 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Checks if the account should be allowed to borrow the underlying asset of the given market
-     * @param cToken The market to verify the borrow against
+     * @param zkToken The market to verify the borrow against
      * @param borrower The account which would borrow the asset
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address cToken, address borrower, uint borrowAmount) override external returns (uint) {
+    function borrowAllowed(address zkToken, address borrower, uint borrowAmount) override external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!borrowGuardianPaused[cToken], "borrow is paused");
+        require(!borrowGuardianPaused[zkToken], "borrow is paused");
 
-        if (!markets[cToken].isListed) {
+        if (!markets[zkToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
-        if (!markets[cToken].accountMembership[borrower]) {
-            // only cTokens may call borrowAllowed if borrower not in market
-            require(msg.sender == cToken, "sender must be cToken");
+        if (!markets[zkToken].accountMembership[borrower]) {
+            // only zkTokens may call borrowAllowed if borrower not in market
+            require(msg.sender == zkToken, "sender must be zkToken");
 
             // attempt to add borrower to the market
-            Error err = addToMarketInternal(CToken(msg.sender), borrower);
+            Error err = addToMarketInternal(ZKToken(msg.sender), borrower);
             if (err != Error.NO_ERROR) {
                 return uint(err);
             }
 
             // it should be impossible to break the important invariant
-            assert(markets[cToken].accountMembership[borrower]);
+            assert(markets[zkToken].accountMembership[borrower]);
         }
 
-        if (oracle.getUnderlyingPrice(CToken(cToken)) == 0) {
+        if (oracle.getUnderlyingPrice(ZKToken(zkToken)) == 0) {
             return uint(Error.PRICE_ERROR);
         }
 
 
-        uint borrowCap = borrowCaps[cToken];
+        uint borrowCap = borrowCaps[zkToken];
         // Borrow cap of 0 corresponds to unlimited borrowing
         if (borrowCap != 0) {
-            uint totalBorrows = CToken(cToken).totalBorrows();
+            uint totalBorrows = ZKToken(zkToken).totalBorrows();
             uint nextTotalBorrows = add_(totalBorrows, borrowAmount);
             require(nextTotalBorrows < borrowCap, "market borrow cap reached");
         }
 
-        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, CToken(cToken), 0, borrowAmount);
+        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, ZKToken(zkToken), 0, borrowAmount);
         if (err != Error.NO_ERROR) {
             return uint(err);
         }
@@ -381,22 +381,22 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         // Keep the flywheel moving
-        Exp memory borrowIndex = Exp({mantissa: CToken(cToken).borrowIndex()});
-        updateCompBorrowIndex(cToken, borrowIndex);
-        distributeBorrowerComp(cToken, borrower, borrowIndex);
+        Exp memory borrowIndex = Exp({mantissa: ZKToken(zkToken).borrowIndex()});
+        updateZGTBorrowIndex(zkToken, borrowIndex);
+        distributeBorrowerZGT(zkToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Validates borrow and reverts on rejection. May emit logs.
-     * @param cToken Asset whose underlying is being borrowed
+     * @param zkToken Asset whose underlying is being borrowed
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
-    function borrowVerify(address cToken, address borrower, uint borrowAmount) override external {
+    function borrowVerify(address zkToken, address borrower, uint borrowAmount) override external {
         // Shh - currently unused
-        cToken;
+        zkToken;
         borrower;
         borrowAmount;
 
@@ -408,14 +408,14 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
-     * @param cToken The market to verify the repay against
+     * @param zkToken The market to verify the repay against
      * @param payer The account which would repay the asset
      * @param borrower The account which would borrowed the asset
      * @param repayAmount The amount of the underlying asset the account would repay
      * @return 0 if the repay is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
     function repayBorrowAllowed(
-        address cToken,
+        address zkToken,
         address payer,
         address borrower,
         uint repayAmount) override external returns (uint) {
@@ -424,33 +424,33 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         borrower;
         repayAmount;
 
-        if (!markets[cToken].isListed) {
+        if (!markets[zkToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
         // Keep the flywheel moving
-        Exp memory borrowIndex = Exp({mantissa: CToken(cToken).borrowIndex()});
-        updateCompBorrowIndex(cToken, borrowIndex);
-        distributeBorrowerComp(cToken, borrower, borrowIndex);
+        Exp memory borrowIndex = Exp({mantissa: ZKToken(zkToken).borrowIndex()});
+        updateZGTBorrowIndex(zkToken, borrowIndex);
+        distributeBorrowerZGT(zkToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Validates repayBorrow and reverts on rejection. May emit logs.
-     * @param cToken Asset being repaid
+     * @param zkToken Asset being repaid
      * @param payer The address repaying the borrow
      * @param borrower The address of the borrower
      * @param actualRepayAmount The amount of underlying being repaid
      */
     function repayBorrowVerify(
-        address cToken,
+        address zkToken,
         address payer,
         address borrower,
         uint actualRepayAmount,
         uint borrowerIndex) override external {
         // Shh - currently unused
-        cToken;
+        zkToken;
         payer;
         borrower;
         actualRepayAmount;
@@ -464,29 +464,29 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
-     * @param cTokenBorrowed Asset which was borrowed by the borrower
-     * @param cTokenCollateral Asset which was used as collateral and will be seized
+     * @param zkTokenBorrowed Asset which was borrowed by the borrower
+     * @param zkTokenCollateral Asset which was used as collateral and will be seized
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param repayAmount The amount of underlying being repaid
      */
     function liquidateBorrowAllowed(
-        address cTokenBorrowed,
-        address cTokenCollateral,
+        address zkTokenBorrowed,
+        address zkTokenCollateral,
         address liquidator,
         address borrower,
         uint repayAmount) override external returns (uint) {
         // Shh - currently unused
         liquidator;
 
-        if (!markets[cTokenBorrowed].isListed || !markets[cTokenCollateral].isListed) {
+        if (!markets[zkTokenBorrowed].isListed || !markets[zkTokenCollateral].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
-        uint borrowBalance = CToken(cTokenBorrowed).borrowBalanceStored(borrower);
+        uint borrowBalance = ZKToken(zkTokenBorrowed).borrowBalanceStored(borrower);
 
         /* allow accounts to be liquidated if the market is deprecated */
-        if (isDeprecated(CToken(cTokenBorrowed))) {
+        if (isDeprecated(ZKToken(zkTokenBorrowed))) {
             require(borrowBalance >= repayAmount, "Can not repay more than the total borrow");
         } else {
             /* The borrower must have shortfall in order to be liquidatable */
@@ -510,22 +510,22 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Validates liquidateBorrow and reverts on rejection. May emit logs.
-     * @param cTokenBorrowed Asset which was borrowed by the borrower
-     * @param cTokenCollateral Asset which was used as collateral and will be seized
+     * @param zkTokenBorrowed Asset which was borrowed by the borrower
+     * @param zkTokenCollateral Asset which was used as collateral and will be seized
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param actualRepayAmount The amount of underlying being repaid
      */
     function liquidateBorrowVerify(
-        address cTokenBorrowed,
-        address cTokenCollateral,
+        address zkTokenBorrowed,
+        address zkTokenCollateral,
         address liquidator,
         address borrower,
         uint actualRepayAmount,
         uint seizeTokens) override external {
         // Shh - currently unused
-        cTokenBorrowed;
-        cTokenCollateral;
+        zkTokenBorrowed;
+        zkTokenCollateral;
         liquidator;
         borrower;
         actualRepayAmount;
@@ -539,15 +539,15 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
-     * @param cTokenCollateral Asset which was used as collateral and will be seized
-     * @param cTokenBorrowed Asset which was borrowed by the borrower
+     * @param zkTokenCollateral Asset which was used as collateral and will be seized
+     * @param zkTokenBorrowed Asset which was borrowed by the borrower
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
      */
     function seizeAllowed(
-        address cTokenCollateral,
-        address cTokenBorrowed,
+        address zkTokenCollateral,
+        address zkTokenBorrowed,
         address liquidator,
         address borrower,
         uint seizeTokens) override external returns (uint) {
@@ -557,39 +557,39 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         // Shh - currently unused
         seizeTokens;
 
-        if (!markets[cTokenCollateral].isListed || !markets[cTokenBorrowed].isListed) {
+        if (!markets[zkTokenCollateral].isListed || !markets[zkTokenBorrowed].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
-        if (CToken(cTokenCollateral).comptroller() != CToken(cTokenBorrowed).comptroller()) {
+        if (ZKToken(zkTokenCollateral).comptroller() != ZKToken(zkTokenBorrowed).comptroller()) {
             return uint(Error.COMPTROLLER_MISMATCH);
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cTokenCollateral);
-        distributeSupplierComp(cTokenCollateral, borrower);
-        distributeSupplierComp(cTokenCollateral, liquidator);
+        updateZGTSupplyIndex(zkTokenCollateral);
+        distributeSupplierZGT(zkTokenCollateral, borrower);
+        distributeSupplierZGT(zkTokenCollateral, liquidator);
 
         return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Validates seize and reverts on rejection. May emit logs.
-     * @param cTokenCollateral Asset which was used as collateral and will be seized
-     * @param cTokenBorrowed Asset which was borrowed by the borrower
+     * @param zkTokenCollateral Asset which was used as collateral and will be seized
+     * @param zkTokenBorrowed Asset which was borrowed by the borrower
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
      */
     function seizeVerify(
-        address cTokenCollateral,
-        address cTokenBorrowed,
+        address zkTokenCollateral,
+        address zkTokenBorrowed,
         address liquidator,
         address borrower,
         uint seizeTokens) override external {
         // Shh - currently unused
-        cTokenCollateral;
-        cTokenBorrowed;
+        zkTokenCollateral;
+        zkTokenBorrowed;
         liquidator;
         borrower;
         seizeTokens;
@@ -602,41 +602,41 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
-     * @param cToken The market to verify the transfer against
+     * @param zkToken The market to verify the transfer against
      * @param src The account which sources the tokens
      * @param dst The account which receives the tokens
-     * @param transferTokens The number of cTokens to transfer
+     * @param transferTokens The number of zkTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(address cToken, address src, address dst, uint transferTokens) override external returns (uint) {
+    function transferAllowed(address zkToken, address src, address dst, uint transferTokens) override external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!transferGuardianPaused, "transfer is paused");
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
-        uint allowed = redeemAllowedInternal(cToken, src, transferTokens);
+        uint allowed = redeemAllowedInternal(zkToken, src, transferTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
         }
 
         // Keep the flywheel moving
-        updateCompSupplyIndex(cToken);
-        distributeSupplierComp(cToken, src);
-        distributeSupplierComp(cToken, dst);
+        updateZGTSupplyIndex(zkToken);
+        distributeSupplierZGT(zkToken, src);
+        distributeSupplierZGT(zkToken, dst);
 
         return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Validates transfer and reverts on rejection. May emit logs.
-     * @param cToken Asset being transferred
+     * @param zkToken Asset being transferred
      * @param src The account which sources the tokens
      * @param dst The account which receives the tokens
-     * @param transferTokens The number of cTokens to transfer
+     * @param transferTokens The number of zkTokens to transfer
      */
-    function transferVerify(address cToken, address src, address dst, uint transferTokens) override external {
+    function transferVerify(address zkToken, address src, address dst, uint transferTokens) override external {
         // Shh - currently unused
-        cToken;
+        zkToken;
         src;
         dst;
         transferTokens;
@@ -651,13 +651,13 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
-     *  Note that `cTokenBalance` is the number of cTokens the account owns in the market,
+     *  Note that `zkTokenBalance` is the number of zkTokens the account owns in the market,
      *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
      */
     struct AccountLiquidityLocalVars {
         uint sumCollateral;
         uint sumBorrowPlusEffects;
-        uint cTokenBalance;
+        uint zkTokenBalance;
         uint borrowBalance;
         uint exchangeRateMantissa;
         uint oraclePriceMantissa;
@@ -674,7 +674,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account) public view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, CToken(address(0)), 0, 0);
+        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, ZKToken(address(0)), 0, 0);
 
         return (uint(err), liquidity, shortfall);
     }
@@ -686,12 +686,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidityInternal(address account) internal view returns (Error, uint, uint) {
-        return getHypotheticalAccountLiquidityInternal(account, CToken(address(0)), 0, 0);
+        return getHypotheticalAccountLiquidityInternal(account, ZKToken(address(0)), 0, 0);
     }
 
     /**
      * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
-     * @param cTokenModify The market to hypothetically redeem/borrow in
+     * @param zkTokenModify The market to hypothetically redeem/borrow in
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
@@ -701,20 +701,20 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      */
     function getHypotheticalAccountLiquidity(
         address account,
-        address cTokenModify,
+        address zkTokenModify,
         uint redeemTokens,
         uint borrowAmount) public view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, CToken(cTokenModify), redeemTokens, borrowAmount);
+        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, ZKToken(zkTokenModify), redeemTokens, borrowAmount);
         return (uint(err), liquidity, shortfall);
     }
 
     /**
      * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
-     * @param cTokenModify The market to hypothetically redeem/borrow in
+     * @param zkTokenModify The market to hypothetically redeem/borrow in
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem
      * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @dev Note that we calculate the exchangeRateStored for each collateral cToken using stored data,
+     * @dev Note that we calculate the exchangeRateStored for each collateral zkToken using stored data,
      *  without calculating accumulated interest.
      * @return (possible error code,
                 hypothetical account liquidity in excess of collateral requirements,
@@ -722,7 +722,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      */
     function getHypotheticalAccountLiquidityInternal(
         address account,
-        CToken cTokenModify,
+        ZKToken zkTokenModify,
         uint redeemTokens,
         uint borrowAmount) internal view returns (Error, uint, uint) {
 
@@ -730,12 +730,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         uint oErr;
 
         // For each asset the account is in
-        CToken[] memory assets = accountAssets[account];
+        ZKToken[] memory assets = accountAssets[account];
         for (uint i = 0; i < assets.length; i++) {
-            CToken asset = assets[i];
+            ZKToken asset = assets[i];
 
-            // Read the balances and exchange rate from the cToken
-            (oErr, vars.cTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(account);
+            // Read the balances and exchange rate from the zkToken
+            (oErr, vars.zkTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(account);
             if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (Error.SNAPSHOT_ERROR, 0, 0);
             }
@@ -752,14 +752,14 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             // Pre-compute a conversion factor from tokens -> ether (normalized price value)
             vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
 
-            // sumCollateral += tokensToDenom * cTokenBalance
-            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.cTokenBalance, vars.sumCollateral);
+            // sumCollateral += tokensToDenom * zkTokenBalance
+            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.zkTokenBalance, vars.sumCollateral);
 
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
             vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
 
-            // Calculate effects of interacting with cTokenModify
-            if (asset == cTokenModify) {
+            // Calculate effects of interacting with zkTokenModify
+            if (asset == zkTokenModify) {
                 // redeem effect
                 // sumBorrowPlusEffects += tokensToDenom * redeemTokens
                 vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.tokensToDenom, redeemTokens, vars.sumBorrowPlusEffects);
@@ -780,16 +780,16 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
-     * @dev Used in liquidation (called in cToken.liquidateBorrowFresh)
-     * @param cTokenBorrowed The address of the borrowed cToken
-     * @param cTokenCollateral The address of the collateral cToken
-     * @param actualRepayAmount The amount of cTokenBorrowed underlying to convert into cTokenCollateral tokens
-     * @return (errorCode, number of cTokenCollateral tokens to be seized in a liquidation)
+     * @dev Used in liquidation (called in zkToken.liquidateBorrowFresh)
+     * @param zkTokenBorrowed The address of the borrowed zkToken
+     * @param zkTokenCollateral The address of the collateral zkToken
+     * @param actualRepayAmount The amount of zkTokenBorrowed underlying to convert into zkTokenCollateral tokens
+     * @return (errorCode, number of zkTokenCollateral tokens to be seized in a liquidation)
      */
-    function liquidateCalculateSeizeTokens(address cTokenBorrowed, address cTokenCollateral, uint actualRepayAmount) override external view returns (uint, uint) {
+    function liquidateCalculateSeizeTokens(address zkTokenBorrowed, address zkTokenCollateral, uint actualRepayAmount) override external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = oracle.getUnderlyingPrice(CToken(cTokenBorrowed));
-        uint priceCollateralMantissa = oracle.getUnderlyingPrice(CToken(cTokenCollateral));
+        uint priceBorrowedMantissa = oracle.getUnderlyingPrice(ZKToken(zkTokenBorrowed));
+        uint priceCollateralMantissa = oracle.getUnderlyingPrice(ZKToken(zkTokenCollateral));
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -800,7 +800,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
          *  seizeTokens = seizeAmount / exchangeRate
          *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
          */
-        uint exchangeRateMantissa = CToken(cTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint exchangeRateMantissa = ZKToken(zkTokenCollateral).exchangeRateStored(); // Note: reverts on error
         uint seizeTokens;
         Exp memory numerator;
         Exp memory denominator;
@@ -860,18 +860,18 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /**
       * @notice Sets the collateralFactor for a market
       * @dev Admin function to set per-market collateralFactor
-      * @param cToken The market to set the factor on
+      * @param zkToken The market to set the factor on
       * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
       */
-    function _setCollateralFactor(CToken cToken, uint newCollateralFactorMantissa) external returns (uint) {
+    function _setCollateralFactor(ZKToken zkToken, uint newCollateralFactorMantissa) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK);
         }
 
         // Verify market is listed
-        Market storage market = markets[address(cToken)];
+        Market storage market = markets[address(zkToken)];
         if (!market.isListed) {
             return fail(Error.MARKET_NOT_LISTED, FailureInfo.SET_COLLATERAL_FACTOR_NO_EXISTS);
         }
@@ -885,7 +885,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         }
 
         // If collateral factor != 0, fail if price == 0
-        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(cToken) == 0) {
+        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(zkToken) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 
@@ -894,7 +894,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         market.collateralFactorMantissa = newCollateralFactorMantissa;
 
         // Emit event with asset, old collateral factor, and new collateral factor
-        emit NewCollateralFactor(cToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
+        emit NewCollateralFactor(zkToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
 
         return uint(Error.NO_ERROR);
     }
@@ -926,58 +926,57 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     /**
       * @notice Add the market to the markets mapping and set it as listed
       * @dev Admin function to set isListed and add support for the market
-      * @param cToken The address of the market (token) to list
+      * @param zkToken The address of the market (token) to list
       * @return uint 0=success, otherwise a failure. (See enum Error for details)
       */
-    function _supportMarket(CToken cToken) external returns (uint) {
+    function _supportMarket(ZKToken zkToken) external returns (uint) {
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SUPPORT_MARKET_OWNER_CHECK);
         }
 
-        if (markets[address(cToken)].isListed) {
+        if (markets[address(zkToken)].isListed) {
             return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
         }
 
-        cToken.isCToken(); // Sanity check to make sure its really a CToken
+        zkToken.isZKToken(); // Sanity check to make sure its really a ZKToken
 
-        // Note that isComped is not in active use anymore
-        Market storage newMarket = markets[address(cToken)];
+        // Note that is not in active use anymore
+        Market storage newMarket = markets[address(zkToken)];
         newMarket.isListed = true;
-        newMarket.isComped = false;
         newMarket.collateralFactorMantissa = 0;
 
-        _addMarketInternal(address(cToken));
-        _initializeMarket(address(cToken));
+        _addMarketInternal(address(zkToken));
+        _initializeMarket(address(zkToken));
 
-        emit MarketListed(cToken);
+        emit MarketListed(zkToken);
 
         return uint(Error.NO_ERROR);
     }
 
-    function _addMarketInternal(address cToken) internal {
+    function _addMarketInternal(address zkToken) internal {
         for (uint i = 0; i < allMarkets.length; i ++) {
-            require(allMarkets[i] != CToken(cToken), "market already added");
+            require(allMarkets[i] != ZKToken(zkToken), "market already added");
         }
-        allMarkets.push(CToken(cToken));
+        allMarkets.push(ZKToken(zkToken));
     }
 
-    function _initializeMarket(address cToken) internal {
+    function _initializeMarket(address zkToken) internal {
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
 
-        CompMarketState storage supplyState = compSupplyState[cToken];
-        CompMarketState storage borrowState = compBorrowState[cToken];
+        ZGTMarketState storage supplyState = zgtSupplyState[zkToken];
+        ZGTMarketState storage borrowState = zgtBorrowState[zkToken];
 
         /*
          * Update market state indices
          */
         if (supplyState.index == 0) {
             // Initialize supply state index with default value
-            supplyState.index = compInitialIndex;
+            supplyState.index = zgtInitialIndex;
         }
 
         if (borrowState.index == 0) {
             // Initialize borrow state index with default value
-            borrowState.index = compInitialIndex;
+            borrowState.index = zgtInitialIndex;
         }
 
         /*
@@ -988,22 +987,22 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
 
 
     /**
-      * @notice Set the given borrow caps for the given cToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
+      * @notice Set the given borrow caps for the given zkToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
       * @dev Admin or borrowCapGuardian function to set the borrow caps. A borrow cap of 0 corresponds to unlimited borrowing.
-      * @param cTokens The addresses of the markets (tokens) to change the borrow caps for
+      * @param zkTokens The addresses of the markets (tokens) to change the borrow caps for
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
-    function _setMarketBorrowCaps(CToken[] calldata cTokens, uint[] calldata newBorrowCaps) external {
+    function _setMarketBorrowCaps(ZKToken[] calldata zkTokens, uint[] calldata newBorrowCaps) external {
     	require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps");
 
-        uint numMarkets = cTokens.length;
+        uint numMarkets = zkTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
 
         require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
 
         for(uint i = 0; i < numMarkets; i++) {
-            borrowCaps[address(cTokens[i])] = newBorrowCaps[i];
-            emit NewBorrowCap(cTokens[i], newBorrowCaps[i]);
+            borrowCaps[address(zkTokens[i])] = newBorrowCaps[i];
+            emit NewBorrowCap(zkTokens[i], newBorrowCaps[i]);
         }
     }
 
@@ -1046,23 +1045,23 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         return uint(Error.NO_ERROR);
     }
 
-    function _setMintPaused(CToken cToken, bool state) public returns (bool) {
-        require(markets[address(cToken)].isListed, "cannot pause a market that is not listed");
+    function _setMintPaused(ZKToken zkToken, bool state) public returns (bool) {
+        require(markets[address(zkToken)].isListed, "cannot pause a market that is not listed");
         require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can pause");
         require(msg.sender == admin || state == true, "only admin can unpause");
 
-        mintGuardianPaused[address(cToken)] = state;
-        emit ActionPaused(cToken, "Mint", state);
+        mintGuardianPaused[address(zkToken)] = state;
+        emit ActionPaused(zkToken, "Mint", state);
         return state;
     }
 
-    function _setBorrowPaused(CToken cToken, bool state) public returns (bool) {
-        require(markets[address(cToken)].isListed, "cannot pause a market that is not listed");
+    function _setBorrowPaused(ZKToken zkToken, bool state) public returns (bool) {
+        require(markets[address(zkToken)].isListed, "cannot pause a market that is not listed");
         require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can pause");
         require(msg.sender == admin || state == true, "only admin can unpause");
 
-        borrowGuardianPaused[address(cToken)] = state;
-        emit ActionPaused(cToken, "Borrow", state);
+        borrowGuardianPaused[address(zkToken)] = state;
+        emit ActionPaused(zkToken, "Borrow", state);
         return state;
     }
 
@@ -1089,54 +1088,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         require(unitroller._acceptImplementation() == 0, "change not authorized");
     }
 
-    /// @notice Delete this function after proposal 65 is executed
-    function fixBadAccruals(address[] calldata affectedUsers, uint[] calldata amounts) external {
-        require(msg.sender == admin, "Only admin can call this function"); // Only the timelock can call this function
-        require(!proposal65FixExecuted, "Already executed this one-off function"); // Require that this function is only called once
-        require(affectedUsers.length == amounts.length, "Invalid input");
-
-        // Loop variables
-        address user;
-        uint currentAccrual;
-        uint amountToSubtract;
-        uint newAccrual;
-
-        // Iterate through all affected users
-        for (uint i = 0; i < affectedUsers.length; ++i) {
-            user = affectedUsers[i];
-            currentAccrual = compAccrued[user];
-
-            amountToSubtract = amounts[i];
-
-            // The case where the user has claimed and received an incorrect amount of COMP.
-            // The user has less currently accrued than the amount they incorrectly received.
-            if (amountToSubtract > currentAccrual) {
-                // Amount of COMP the user owes the protocol
-                uint accountReceivable = amountToSubtract - currentAccrual; // Underflow safe since amountToSubtract > currentAccrual
-
-                uint oldReceivable = compReceivable[user];
-                uint newReceivable = add_(oldReceivable, accountReceivable);
-
-                // Accounting: record the COMP debt for the user
-                compReceivable[user] = newReceivable;
-
-                emit CompReceivableUpdated(user, oldReceivable, newReceivable);
-
-                amountToSubtract = currentAccrual;
-            }
-
-            if (amountToSubtract > 0) {
-                // Subtract the bad accrual amount from what they have accrued.
-                // Users will keep whatever they have correctly accrued.
-                compAccrued[user] = newAccrual = sub_(currentAccrual, amountToSubtract);
-
-                emit CompAccruedAdjusted(user, currentAccrual, newAccrual);
-            }
-        }
-
-        proposal65FixExecuted = true; // Makes it so that this function cannot be called again
-    }
-
     /**
      * @notice Checks caller is admin, or this contract is becoming the new implementation
      */
@@ -1144,56 +1095,56 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
         return msg.sender == admin || msg.sender == comptrollerImplementation;
     }
 
-    /*** Comp Distribution ***/
+    /*** ZGT Distribution ***/
 
     /**
-     * @notice Set COMP speed for a single market
-     * @param cToken The market whose COMP speed to update
-     * @param supplySpeed New supply-side COMP speed for market
-     * @param borrowSpeed New borrow-side COMP speed for market
+     * @notice Set ZGT speed for a single market
+     * @param zkToken The market whose ZGT speed to update
+     * @param supplySpeed New supply-side ZGT speed for market
+     * @param borrowSpeed New borrow-side ZGT speed for market
      */
-    function setCompSpeedInternal(CToken cToken, uint supplySpeed, uint borrowSpeed) internal {
-        Market storage market = markets[address(cToken)];
-        require(market.isListed, "comp market is not listed");
+    function setZGTSpeedInternal(ZKToken zkToken, uint supplySpeed, uint borrowSpeed) internal {
+        Market storage market = markets[address(zkToken)];
+        require(market.isListed, "ZGT market is not listed");
 
-        if (compSupplySpeeds[address(cToken)] != supplySpeed) {
+        if (zgtSupplySpeeds[address(zkToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
-            //  1. COMP accrued properly for the old speed, and
-            //  2. COMP accrued at the new speed starts after this block.
-            updateCompSupplyIndex(address(cToken));
+            //  1. ZGT accrued properly for the old speed, and
+            //  2. ZGT accrued at the new speed starts after this block.
+            updateZGTSupplyIndex(address(zkToken));
 
             // Update speed and emit event
-            compSupplySpeeds[address(cToken)] = supplySpeed;
-            emit CompSupplySpeedUpdated(cToken, supplySpeed);
+            zgtSupplySpeeds[address(zkToken)] = supplySpeed;
+            emit ZGTSupplySpeedUpdated(zkToken, supplySpeed);
         }
 
-        if (compBorrowSpeeds[address(cToken)] != borrowSpeed) {
+        if (zgtBorrowSpeeds[address(zkToken)] != borrowSpeed) {
             // Borrow speed updated so let's update borrow state to ensure that
-            //  1. COMP accrued properly for the old speed, and
-            //  2. COMP accrued at the new speed starts after this block.
-            Exp memory borrowIndex = Exp({mantissa: cToken.borrowIndex()});
-            updateCompBorrowIndex(address(cToken), borrowIndex);
+            //  1. ZGT accrued properly for the old speed, and
+            //  2. ZGT accrued at the new speed starts after this block.
+            Exp memory borrowIndex = Exp({mantissa: zkToken.borrowIndex()});
+            updateZGTBorrowIndex(address(zkToken), borrowIndex);
 
             // Update speed and emit event
-            compBorrowSpeeds[address(cToken)] = borrowSpeed;
-            emit CompBorrowSpeedUpdated(cToken, borrowSpeed);
+            zgtBorrowSpeeds[address(zkToken)] = borrowSpeed;
+            emit ZGTBorrowSpeedUpdated(zkToken, borrowSpeed);
         }
     }
 
     /**
-     * @notice Accrue COMP to the market by updating the supply index
-     * @param cToken The market whose supply index to update
-     * @dev Index is a cumulative sum of the COMP per cToken accrued.
+     * @notice Accrue ZGT to the market by updating the supply index
+     * @param zkToken The market whose supply index to update
+     * @dev Index is a cumulative sum of the ZGT per zkToken accrued.
      */
-    function updateCompSupplyIndex(address cToken) internal {
-        CompMarketState storage supplyState = compSupplyState[cToken];
-        uint supplySpeed = compSupplySpeeds[cToken];
+    function updateZGTSupplyIndex(address zkToken) internal {
+        ZGTMarketState storage supplyState = zgtSupplyState[zkToken];
+        uint supplySpeed = zgtSupplySpeeds[zkToken];
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
-            uint supplyTokens = CToken(cToken).totalSupply();
-            uint compAccrued = mul_(deltaBlocks, supplySpeed);
-            Double memory ratio = supplyTokens > 0 ? fraction(compAccrued, supplyTokens) : Double({mantissa: 0});
+            uint supplyTokens = ZKToken(zkToken).totalSupply();
+            uint zgtAccrued = mul_(deltaBlocks, supplySpeed);
+            Double memory ratio = supplyTokens > 0 ? fraction(zgtAccrued, supplyTokens) : Double({mantissa: 0});
             supplyState.index = safe224(add_(Double({mantissa: supplyState.index}), ratio).mantissa, "new index exceeds 224 bits");
             supplyState.block = blockNumber;
         } else if (deltaBlocks > 0) {
@@ -1202,19 +1153,19 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Accrue COMP to the market by updating the borrow index
-     * @param cToken The market whose borrow index to update
-     * @dev Index is a cumulative sum of the COMP per cToken accrued.
+     * @notice Accrue ZGT to the market by updating the borrow index
+     * @param zkToken The market whose borrow index to update
+     * @dev Index is a cumulative sum of the ZGT per zkToken accrued.
      */
-    function updateCompBorrowIndex(address cToken, Exp memory marketBorrowIndex) internal {
-        CompMarketState storage borrowState = compBorrowState[cToken];
-        uint borrowSpeed = compBorrowSpeeds[cToken];
+    function updateZGTBorrowIndex(address zkToken, Exp memory marketBorrowIndex) internal {
+        ZGTMarketState storage borrowState = zgtBorrowState[zkToken];
+        uint borrowSpeed = zgtBorrowSpeeds[zkToken];
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
-            uint borrowAmount = div_(CToken(cToken).totalBorrows(), marketBorrowIndex);
-            uint compAccrued = mul_(deltaBlocks, borrowSpeed);
-            Double memory ratio = borrowAmount > 0 ? fraction(compAccrued, borrowAmount) : Double({mantissa: 0});
+            uint borrowAmount = div_(ZKToken(zkToken).totalBorrows(), marketBorrowIndex);
+            uint zgtAccrued = mul_(deltaBlocks, borrowSpeed);
+            Double memory ratio = borrowAmount > 0 ? fraction(zgtAccrued, borrowAmount) : Double({mantissa: 0});
             borrowState.index = safe224(add_(Double({mantissa: borrowState.index}), ratio).mantissa, "new index exceeds 224 bits");
             borrowState.block = blockNumber;
         } else if (deltaBlocks > 0) {
@@ -1223,216 +1174,216 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Calculate COMP accrued by a supplier and possibly transfer it to them
-     * @param cToken The market in which the supplier is interacting
-     * @param supplier The address of the supplier to distribute COMP to
+     * @notice Calculate ZGT accrued by a supplier and possibly transfer it to them
+     * @param zkToken The market in which the supplier is interacting
+     * @param supplier The address of the supplier to distribute ZGT to
      */
-    function distributeSupplierComp(address cToken, address supplier) internal {
-        // TODO: Don't distribute supplier COMP if the user is not in the supplier market.
+    function distributeSupplierZGT(address zkToken, address supplier) internal {
+        // TODO: Don't distribute supplier ZGT if the user is not in the supplier market.
         // This check should be as gas efficient as possible as distributeSupplierComp is called in many places.
         // - We really don't want to call an external contract as that's quite expensive.
 
-        CompMarketState storage supplyState = compSupplyState[cToken];
+        ZGTMarketState storage supplyState = zgtSupplyState[zkToken];
         uint supplyIndex = supplyState.index;
-        uint supplierIndex = compSupplierIndex[cToken][supplier];
+        uint supplierIndex = zgtSupplierIndex[zkToken][supplier];
 
-        // Update supplier's index to the current index since we are distributing accrued COMP
-        compSupplierIndex[cToken][supplier] = supplyIndex;
+        // Update supplier's index to the current index since we are distributing accrued ZGT
+        zgtSupplierIndex[zkToken][supplier] = supplyIndex;
 
-        if (supplierIndex == 0 && supplyIndex >= compInitialIndex) {
+        if (supplierIndex == 0 && supplyIndex >= zgtInitialIndex) {
             // Covers the case where users supplied tokens before the market's supply state index was set.
-            // Rewards the user with COMP accrued from the start of when supplier rewards were first
+            // Rewards the user with ZGT accrued from the start of when supplier rewards were first
             // set for the market.
-            supplierIndex = compInitialIndex;
+            supplierIndex = zgtInitialIndex;
         }
 
-        // Calculate change in the cumulative sum of the COMP per cToken accrued
+        // Calculate change in the cumulative sum of the ZGT per zkToken accrued
         Double memory deltaIndex = Double({mantissa: sub_(supplyIndex, supplierIndex)});
 
-        uint supplierTokens = CToken(cToken).balanceOf(supplier);
+        uint supplierTokens = ZKToken(zkToken).balanceOf(supplier);
 
-        // Calculate COMP accrued: cTokenAmount * accruedPerCToken
+        // Calculate ZGT accrued: zkTokenAmount * accruedPerZKToken
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
 
-        uint supplierAccrued = add_(compAccrued[supplier], supplierDelta);
-        compAccrued[supplier] = supplierAccrued;
+        uint supplierAccrued = add_(zgtAccrued[supplier], supplierDelta);
+        zgtAccrued[supplier] = supplierAccrued;
 
-        emit DistributedSupplierComp(CToken(cToken), supplier, supplierDelta, supplyIndex);
+        emit DistributedSupplierZGT(ZKToken(zkToken), supplier, supplierDelta, supplyIndex);
     }
 
     /**
-     * @notice Calculate COMP accrued by a borrower and possibly transfer it to them
+     * @notice Calculate ZGT accrued by a borrower and possibly transfer it to them
      * @dev Borrowers will not begin to accrue until after the first interaction with the protocol.
-     * @param cToken The market in which the borrower is interacting
-     * @param borrower The address of the borrower to distribute COMP to
+     * @param zkToken The market in which the borrower is interacting
+     * @param borrower The address of the borrower to distribute ZGT to
      */
-    function distributeBorrowerComp(address cToken, address borrower, Exp memory marketBorrowIndex) internal {
-        // TODO: Don't distribute supplier COMP if the user is not in the borrower market.
-        // This check should be as gas efficient as possible as distributeBorrowerComp is called in many places.
+    function distributeBorrowerZGT(address zkToken, address borrower, Exp memory marketBorrowIndex) internal {
+        // TODO: Don't distribute supplier ZGT if the user is not in the borrower market.
+        // This check should be as gas efficient as possible as distributeBorrowerZGT is called in many places.
         // - We really don't want to call an external contract as that's quite expensive.
 
-        CompMarketState storage borrowState = compBorrowState[cToken];
+        ZGTMarketState storage borrowState = zgtBorrowState[zkToken];
         uint borrowIndex = borrowState.index;
-        uint borrowerIndex = compBorrowerIndex[cToken][borrower];
+        uint borrowerIndex = zgtBorrowerIndex[zkToken][borrower];
 
-        // Update borrowers's index to the current index since we are distributing accrued COMP
-        compBorrowerIndex[cToken][borrower] = borrowIndex;
+        // Update borrowers's index to the current index since we are distributing accrued ZGT
+        zgtBorrowerIndex[zkToken][borrower] = borrowIndex;
 
-        if (borrowerIndex == 0 && borrowIndex >= compInitialIndex) {
+        if (borrowerIndex == 0 && borrowIndex >= zgtInitialIndex) {
             // Covers the case where users borrowed tokens before the market's borrow state index was set.
-            // Rewards the user with COMP accrued from the start of when borrower rewards were first
+            // Rewards the user with ZGT accrued from the start of when borrower rewards were first
             // set for the market.
-            borrowerIndex = compInitialIndex;
+            borrowerIndex = zgtInitialIndex;
         }
 
-        // Calculate change in the cumulative sum of the COMP per borrowed unit accrued
+        // Calculate change in the cumulative sum of the ZGT per borrowed unit accrued
         Double memory deltaIndex = Double({mantissa: sub_(borrowIndex, borrowerIndex)});
 
-        uint borrowerAmount = div_(CToken(cToken).borrowBalanceStored(borrower), marketBorrowIndex);
+        uint borrowerAmount = div_(ZKToken(zkToken).borrowBalanceStored(borrower), marketBorrowIndex);
 
-        // Calculate COMP accrued: cTokenAmount * accruedPerBorrowedUnit
+        // Calculate ZGT accrued: zkTokenAmount * accruedPerBorrowedUnit
         uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
 
-        uint borrowerAccrued = add_(compAccrued[borrower], borrowerDelta);
-        compAccrued[borrower] = borrowerAccrued;
+        uint borrowerAccrued = add_(zgtAccrued[borrower], borrowerDelta);
+        zgtAccrued[borrower] = borrowerAccrued;
 
-        emit DistributedBorrowerComp(CToken(cToken), borrower, borrowerDelta, borrowIndex);
+        emit DistributedBorrowerZGT(ZKToken(zkToken), borrower, borrowerDelta, borrowIndex);
     }
 
     /**
-     * @notice Calculate additional accrued COMP for a contributor since last accrual
+     * @notice Calculate additional accrued ZGT for a contributor since last accrual
      * @param contributor The address to calculate contributor rewards for
      */
     function updateContributorRewards(address contributor) public {
-        uint compSpeed = compContributorSpeeds[contributor];
+        uint zgtSpeed = zgtContributorSpeeds[contributor];
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, lastContributorBlock[contributor]);
-        if (deltaBlocks > 0 && compSpeed > 0) {
-            uint newAccrued = mul_(deltaBlocks, compSpeed);
-            uint contributorAccrued = add_(compAccrued[contributor], newAccrued);
+        if (deltaBlocks > 0 && zgtSpeed > 0) {
+            uint newAccrued = mul_(deltaBlocks, zgtSpeed);
+            uint contributorAccrued = add_(zgtAccrued[contributor], newAccrued);
 
-            compAccrued[contributor] = contributorAccrued;
+            zgtAccrued[contributor] = contributorAccrued;
             lastContributorBlock[contributor] = blockNumber;
         }
     }
 
     /**
-     * @notice Claim all the comp accrued by holder in all markets
-     * @param holder The address to claim COMP for
+     * @notice Claim all the ZGT accrued by holder in all markets
+     * @param holder The address to claim ZGT for
      */
-    function claimComp(address holder) public {
-        return claimComp(holder, allMarkets);
+    function claimZGT(address holder) public {
+        return claimZGT(holder, allMarkets);
     }
 
     /**
-     * @notice Claim all the comp accrued by holder in the specified markets
-     * @param holder The address to claim COMP for
-     * @param cTokens The list of markets to claim COMP in
+     * @notice Claim all the ZGT accrued by holder in the specified markets
+     * @param holder The address to claim ZGT for
+     * @param zkTokens The list of markets to claim ZGT in
      */
-    function claimComp(address holder, CToken[] memory cTokens) public {
+    function claimZGT(address holder, ZKToken[] memory zkTokens) public {
         address[] memory holders = new address[](1);
         holders[0] = holder;
-        claimComp(holders, cTokens, true, true);
+        claimZGT(holders, zkTokens, true, true);
     }
 
     /**
-     * @notice Claim all comp accrued by the holders
-     * @param holders The addresses to claim COMP for
-     * @param cTokens The list of markets to claim COMP in
-     * @param borrowers Whether or not to claim COMP earned by borrowing
-     * @param suppliers Whether or not to claim COMP earned by supplying
+     * @notice Claim all ZGT accrued by the holders
+     * @param holders The addresses to claim ZGT for
+     * @param zkTokens The list of markets to claim ZGT in
+     * @param borrowers Whether or not to claim ZGT earned by borrowing
+     * @param suppliers Whether or not to claim ZGT earned by supplying
      */
-    function claimComp(address[] memory holders, CToken[] memory cTokens, bool borrowers, bool suppliers) public {
-        for (uint i = 0; i < cTokens.length; i++) {
-            CToken cToken = cTokens[i];
-            require(markets[address(cToken)].isListed, "market must be listed");
+    function claimZGT(address[] memory holders, ZKToken[] memory zkTokens, bool borrowers, bool suppliers) public {
+        for (uint i = 0; i < zkTokens.length; i++) {
+            ZKToken zkToken = zkTokens[i];
+            require(markets[address(zkToken)].isListed, "market must be listed");
             if (borrowers == true) {
-                Exp memory borrowIndex = Exp({mantissa: cToken.borrowIndex()});
-                updateCompBorrowIndex(address(cToken), borrowIndex);
+                Exp memory borrowIndex = Exp({mantissa: zkToken.borrowIndex()});
+                updateZGTBorrowIndex(address(zkToken), borrowIndex);
                 for (uint j = 0; j < holders.length; j++) {
-                    distributeBorrowerComp(address(cToken), holders[j], borrowIndex);
+                    distributeBorrowerZGT(address(zkToken), holders[j], borrowIndex);
                 }
             }
             if (suppliers == true) {
-                updateCompSupplyIndex(address(cToken));
+                updateZGTSupplyIndex(address(zkToken));
                 for (uint j = 0; j < holders.length; j++) {
-                    distributeSupplierComp(address(cToken), holders[j]);
+                    distributeSupplierZGT(address(zkToken), holders[j]);
                 }
             }
         }
         for (uint j = 0; j < holders.length; j++) {
-            compAccrued[holders[j]] = grantCompInternal(holders[j], compAccrued[holders[j]]);
+            zgtAccrued[holders[j]] = grantZGTInternal(holders[j], zgtAccrued[holders[j]]);
         }
     }
 
     /**
-     * @notice Transfer COMP to the user
-     * @dev Note: If there is not enough COMP, we do not perform the transfer all.
-     * @param user The address of the user to transfer COMP to
-     * @param amount The amount of COMP to (possibly) transfer
-     * @return The amount of COMP which was NOT transferred to the user
+     * @notice Transfer ZGT to the user
+     * @dev Note: If there is not enough ZGT, we do not perform the transfer all.
+     * @param user The address of the user to transfer ZGT to
+     * @param amount The amount of ZGT to (possibly) transfer
+     * @return The amount of ZGT which was NOT transferred to the user
      */
-    function grantCompInternal(address user, uint amount) internal returns (uint) {
-        Comp comp = Comp(getCompAddress());
-        uint compRemaining = comp.balanceOf(address(this));
-        if (amount > 0 && amount <= compRemaining) {
-            comp.transfer(user, amount);
+    function grantZGTInternal(address user, uint amount) internal returns (uint) {
+        ZGT zgt = ZGT(getZGTAddress());
+        uint zgtRemaining = zgt.balanceOf(address(this));
+        if (amount > 0 && amount <= zgtRemaining) {
+            zgt.transfer(user, amount);
             return 0;
         }
         return amount;
     }
 
-    /*** Comp Distribution Admin ***/
+    /*** ZGT Distribution Admin ***/
 
     /**
-     * @notice Transfer COMP to the recipient
-     * @dev Note: If there is not enough COMP, we do not perform the transfer all.
-     * @param recipient The address of the recipient to transfer COMP to
-     * @param amount The amount of COMP to (possibly) transfer
+     * @notice Transfer ZGT to the recipient
+     * @dev Note: If there is not enough ZGT, we do not perform the transfer all.
+     * @param recipient The address of the recipient to transfer ZGT to
+     * @param amount The amount of ZGT to (possibly) transfer
      */
-    function _grantComp(address recipient, uint amount) public {
-        require(adminOrInitializing(), "only admin can grant comp");
-        uint amountLeft = grantCompInternal(recipient, amount);
-        require(amountLeft == 0, "insufficient comp for grant");
-        emit CompGranted(recipient, amount);
+    function _grantZGT(address recipient, uint amount) public {
+        require(adminOrInitializing(), "only admin can grant ZGT");
+        uint amountLeft = grantZGTInternal(recipient, amount);
+        require(amountLeft == 0, "insufficient ZGT for grant");
+        emit ZGTGranted(recipient, amount);
     }
 
     /**
-     * @notice Set COMP borrow and supply speeds for the specified markets.
-     * @param cTokens The markets whose COMP speed to update.
-     * @param supplySpeeds New supply-side COMP speed for the corresponding market.
-     * @param borrowSpeeds New borrow-side COMP speed for the corresponding market.
+     * @notice Set ZGT borrow and supply speeds for the specified markets.
+     * @param zkTokens The markets whose ZGT speed to update.
+     * @param supplySpeeds New supply-side ZGT speed for the corresponding market.
+     * @param borrowSpeeds New borrow-side ZGT speed for the corresponding market.
      */
-    function _setCompSpeeds(CToken[] memory cTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
-        require(adminOrInitializing(), "only admin can set comp speed");
+    function _setZGTSpeeds(ZKToken[] memory zkTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
+        require(adminOrInitializing(), "only admin can set ZGT speed");
 
-        uint numTokens = cTokens.length;
-        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setCompSpeeds invalid input");
+        uint numTokens = zkTokens.length;
+        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setZGTSpeeds invalid input");
 
         for (uint i = 0; i < numTokens; ++i) {
-            setCompSpeedInternal(cTokens[i], supplySpeeds[i], borrowSpeeds[i]);
+            setZGTSpeedInternal(zkTokens[i], supplySpeeds[i], borrowSpeeds[i]);
         }
     }
 
     /**
-     * @notice Set COMP speed for a single contributor
-     * @param contributor The contributor whose COMP speed to update
-     * @param compSpeed New COMP speed for contributor
+     * @notice Set ZGT speed for a single contributor
+     * @param contributor The contributor whose ZGT speed to update
+     * @param zgtSpeed New ZGT speed for contributor
      */
-    function _setContributorCompSpeed(address contributor, uint compSpeed) public {
-        require(adminOrInitializing(), "only admin can set comp speed");
+    function _setContributorZGTSpeed(address contributor, uint zgtSpeed) public {
+        require(adminOrInitializing(), "only admin can set ZGT speed");
 
-        // note that COMP speed could be set to 0 to halt liquidity rewards for a contributor
+        // note that ZGT speed could be set to 0 to halt liquidity rewards for a contributor
         updateContributorRewards(contributor);
-        if (compSpeed == 0) {
+        if (zgtSpeed == 0) {
             // release storage
             delete lastContributorBlock[contributor];
         } else {
             lastContributorBlock[contributor] = getBlockNumber();
         }
-        compContributorSpeeds[contributor] = compSpeed;
+        zgtContributorSpeeds[contributor] = zgtSpeed;
 
-        emit ContributorCompSpeedUpdated(contributor, compSpeed);
+        emit ContributorZGTSpeedUpdated(contributor, zgtSpeed);
     }
 
     /**
@@ -1440,20 +1391,20 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      * @dev The automatic getter may be used to access an individual market.
      * @return The list of market addresses
      */
-    function getAllMarkets() public view returns (CToken[] memory) {
+    function getAllMarkets() public view returns (ZKToken[] memory) {
         return allMarkets;
     }
 
     /**
-     * @notice Returns true if the given cToken market has been deprecated
-     * @dev All borrows in a deprecated cToken market can be immediately liquidated
-     * @param cToken The market to check if deprecated
+     * @notice Returns true if the given zkToken market has been deprecated
+     * @dev All borrows in a deprecated zkToken market can be immediately liquidated
+     * @param zkToken The market to check if deprecated
      */
-    function isDeprecated(CToken cToken) public view returns (bool) {
+    function isDeprecated(ZKToken zkToken) public view returns (bool) {
         return
-            markets[address(cToken)].collateralFactorMantissa == 0 &&
-            borrowGuardianPaused[address(cToken)] == true &&
-            cToken.reserveFactorMantissa() == 1e18
+            markets[address(zkToken)].collateralFactorMantissa == 0 &&
+            borrowGuardianPaused[address(zkToken)] == true &&
+            zkToken.reserveFactorMantissa() == 1e18
         ;
     }
 
@@ -1462,10 +1413,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Return the address of the COMP token
-     * @return The address of COMP
+     * @notice Return the address of the ZGT token
+     * @return The address of ZGT
      */
-    function getCompAddress() virtual public view returns (address) {
+    function getZGTAddress() virtual public view returns (address) {
         return 0xc00e94Cb662C3520282E6f5717214004A7f26888;
     }
 }

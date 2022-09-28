@@ -7,66 +7,66 @@ abstract contract ComptrollerInterface {
 
     /*** Assets You Are In ***/
 
-    function enterMarkets(address[] calldata cTokens) virtual external returns (uint[] memory);
-    function exitMarket(address cToken) virtual external returns (uint);
+    function enterMarkets(address[] calldata zkTokens) virtual external returns (uint[] memory);
+    function exitMarket(address zkToken) virtual external returns (uint);
 
     /*** Policy Hooks ***/
 
-    function mintAllowed(address cToken, address minter, uint mintAmount) virtual external returns (uint);
-    function mintVerify(address cToken, address minter, uint mintAmount, uint mintTokens) virtual external;
+    function mintAllowed(address zkToken, address minter, uint mintAmount) virtual external returns (uint);
+    function mintVerify(address zkToken, address minter, uint mintAmount, uint mintTokens) virtual external;
 
-    function redeemAllowed(address cToken, address redeemer, uint redeemTokens) virtual external returns (uint);
-    function redeemVerify(address cToken, address redeemer, uint redeemAmount, uint redeemTokens) virtual external;
+    function redeemAllowed(address zkToken, address redeemer, uint redeemTokens) virtual external returns (uint);
+    function redeemVerify(address zkToken, address redeemer, uint redeemAmount, uint redeemTokens) virtual external;
 
-    function borrowAllowed(address cToken, address borrower, uint borrowAmount) virtual external returns (uint);
-    function borrowVerify(address cToken, address borrower, uint borrowAmount) virtual external;
+    function borrowAllowed(address zkToken, address borrower, uint borrowAmount) virtual external returns (uint);
+    function borrowVerify(address zkToken, address borrower, uint borrowAmount) virtual external;
 
     function repayBorrowAllowed(
-        address cToken,
+        address zkToken,
         address payer,
         address borrower,
         uint repayAmount) virtual external returns (uint);
     function repayBorrowVerify(
-        address cToken,
+        address zkToken,
         address payer,
         address borrower,
         uint repayAmount,
         uint borrowerIndex) virtual external;
 
     function liquidateBorrowAllowed(
-        address cTokenBorrowed,
-        address cTokenCollateral,
+        address zkTokenBorrowed,
+        address zkTokenCollateral,
         address liquidator,
         address borrower,
         uint repayAmount) virtual external returns (uint);
     function liquidateBorrowVerify(
-        address cTokenBorrowed,
-        address cTokenCollateral,
+        address zkTokenBorrowed,
+        address zkTokenCollateral,
         address liquidator,
         address borrower,
         uint repayAmount,
         uint seizeTokens) virtual external;
 
     function seizeAllowed(
-        address cTokenCollateral,
-        address cTokenBorrowed,
+        address zkTokenCollateral,
+        address zkTokenBorrowed,
         address liquidator,
         address borrower,
         uint seizeTokens) virtual external returns (uint);
     function seizeVerify(
-        address cTokenCollateral,
-        address cTokenBorrowed,
+        address zkTokenCollateral,
+        address zkTokenBorrowed,
         address liquidator,
         address borrower,
         uint seizeTokens) virtual external;
 
-    function transferAllowed(address cToken, address src, address dst, uint transferTokens) virtual external returns (uint);
-    function transferVerify(address cToken, address src, address dst, uint transferTokens) virtual external;
+    function transferAllowed(address zkToken, address src, address dst, uint transferTokens) virtual external returns (uint);
+    function transferVerify(address zkToken, address src, address dst, uint transferTokens) virtual external;
 
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
-        address cTokenBorrowed,
-        address cTokenCollateral,
+        address zkTokenBorrowed,
+        address zkTokenCollateral,
         uint repayAmount) virtual external view returns (uint, uint);
 }

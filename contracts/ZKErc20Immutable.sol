@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-import "./CErc20.sol";
+import "./ZKErc20.sol";
 
 /**
- * @title Compound's CErc20Immutable Contract
- * @notice CTokens which wrap an EIP-20 underlying and are immutable
- * @author Compound
+ * @title zkFinance's ZKErc20Immutable Contract
+ * @notice ZKTokens which wrap an EIP-20 underlying and are immutable
+ * @author zkFinance
  */
-contract CErc20Immutable is CErc20 {
+contract ZKErc20Immutable is ZKErc20 {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
