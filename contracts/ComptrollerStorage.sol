@@ -130,4 +130,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
 
     /// @notice The rate at which ZGT is distributed to the corresponding supply market (per block)
     mapping(address => uint256) public zgtSupplySpeeds;
+
+    /// @notice Liquidator contract
+    address public liquidatorContract;
 }
