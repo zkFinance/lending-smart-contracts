@@ -1,38 +1,37 @@
+/*
+  yarn deploy --script deploy.ts
+*/
+
 import { Wallet } from 'zksync-web3'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy'
-import fs from 'fs'
-
-const PRIVATE_KEY: string = fs.readFileSync('.secret').toString()
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  console.log(`Running deploy script for the zkFinance Protocool`)
+  console.log(`Running deploy script`)
 
   // Initialize the wallet.
-  const wallet = new Wallet(PRIVATE_KEY)
+  const wallet = new Wallet(process.env.PRIVATE_KEY!)
   const deployer = new Deployer(hre, wallet)
   const owner = await wallet.getAddress()
-
-  // Comp
-  const artifactZGT = await deployer.loadArtifact('ZGT')
-  const compContract = await deployer.deploy(artifactZGT, [owner])
-  const zgtAddress = compContract.address
-
-  console.log(`${artifactZGT.contractName} was deployed to ${zgtAddress}`)
 
   // Comptroller
   const artifactComptroller = await deployer.loadArtifact('Comptroller')
   const comptrollerContract = await deployer.deploy(artifactComptroller)
-  const comptrollerAddress = comptrollerContract.address
-
-  console.log(`${artifactComptroller.contractName} was deployed to ${comptrollerAddress}`)
+  console.log(`${artifactComptroller.contractName} was deployed to ${comptrollerContract.address}`)
 
   // Unitroller
   const artifactUnitroller = await deployer.loadArtifact('Unitroller')
-  const unitrollerContract = await deployer.deploy(artifactComptroller)
-  const unitrollerAddress = unitrollerContract.address
+  const unitrollerContract = await deployer.deploy(artifactUnitroller)
+  console.log(`${artifactUnitroller.contractName} was deployed to ${unitrollerContract.address}`)
 
-  console.log(`${artifactUnitroller.contractName} was deployed to ${unitrollerAddress}`)
+  // Link Comptroller to Unitroller proxy
+  let tx = await unitrollerContract._setPendingImplementation(comptrollerContract.address)
+  await tx.wait();
+  console.log(`${artifactUnitroller.contractName} Pending implementation is set`)
+
+  tx = await comptrollerContract._become(unitrollerContract.address)
+  await tx.wait();
+  console.log(`${artifactComptroller.contractName} Become called`)
 
   // JumpRateModelV2
   const artifactJumpRateModelV2 = await deployer.loadArtifact('JumpRateModelV2')
@@ -43,16 +42,10 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     '800000000000000000',
     owner,
   ])
-  const jumpRateModelV2Address = jumpRateModelV2Contract.address
-
-  console.log(`${artifactJumpRateModelV2.contractName} was deployed to ${jumpRateModelV2Address}`)
+  console.log(`${artifactJumpRateModelV2.contractName} was deployed to ${jumpRateModelV2Contract.address}`)
 
   // ZKErc20Delegate
   const artifactZKErc20Delegate = await deployer.loadArtifact('ZKErc20Delegate')
   const zkErc20DelegateContract = await deployer.deploy(artifactZKErc20Delegate)
-  const zkErc20DelegateContractAddress = zkErc20DelegateContract.address
-
-  console.log(
-    `${artifactZKErc20Delegate.contractName} was deployed to ${zkErc20DelegateContractAddress}`
-  )
+  console.log(`${artifactZKErc20Delegate.contractName} was deployed to ${zkErc20DelegateContract.address}`)
 }
