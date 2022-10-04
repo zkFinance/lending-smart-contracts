@@ -74,6 +74,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     /// @notice Emitted when ZGT receivable for a user has been updated.
     event ZGTReceivableUpdated(address indexed user, uint oldZGTReceivable, uint newZGTReceivable);
 
+    // @notice Emitted when liquidator adress is changed
+    event NewLiquidatorContract(address oldLiquidatorContract, address newLiquidatorContract);
+    
     /// @notice The initial ZGT index for a market
     uint224 public constant zgtInitialIndex = 1e36;
 
@@ -475,9 +478,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         address zkTokenCollateral,
         address liquidator,
         address borrower,
-        uint repayAmount) override external returns (uint) {
-        // Shh - currently unused
-        liquidator;
+        uint repayAmount) override external view returns (uint) {
+       
+        if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
+            return uint(Error.UNAUTHORIZED);
+        }
 
         if (!markets[zkTokenBorrowed].isListed || !markets[zkTokenCollateral].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
@@ -921,6 +926,15 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
 
         return uint(Error.NO_ERROR);
+    }
+
+    function _setLiquidatorContract(address newLiquidatorContract_) external {
+        // Check caller is admin
+        require(msg.sender == admin, "only admin can");
+        
+        address oldLiquidatorContract = liquidatorContract;
+        liquidatorContract = newLiquidatorContract_;
+        emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
     }
 
     /**

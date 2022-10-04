@@ -70,3 +70,7 @@ abstract contract ComptrollerInterface {
         address zkTokenCollateral,
         uint repayAmount) virtual external view returns (uint, uint);
 }
+
+interface IComptroller {
+    function liquidationIncentiveMantissa() external view returns (uint);
+}
