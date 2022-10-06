@@ -133,4 +133,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
 
     /// @notice Liquidator contract
     address public liquidatorContract;
+
+    /// @notice Pause/Unpause ZGT claiming action
+    bool public zgtClaimingPaused;
 }

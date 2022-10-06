@@ -2,8 +2,14 @@ require('@nomiclabs/hardhat-ethers')
 require("@nomiclabs/hardhat-waffle")
 require("@nomiclabs/hardhat-web3");
 require("@nomiclabs/hardhat-truffle5");
-require('@matterlabs/hardhat-zksync-solc')
-require('@matterlabs/hardhat-zksync-deploy')
+
+// During the development compiling with zksync solc takes very long time.
+// solution is to exclute the zksync solc library and just use the 
+// solidy compile. 
+if (process.env.NODE_ENV !== 'sim-compile') {
+  require('@matterlabs/hardhat-zksync-solc')
+  require('@matterlabs/hardhat-zksync-deploy')
+}
 require("dotenv").config();
 
 
@@ -35,7 +41,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100
+            runs: 200
           }
         }
       }

@@ -77,6 +77,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     // @notice Emitted when liquidator adress is changed
     event NewLiquidatorContract(address oldLiquidatorContract, address newLiquidatorContract);
     
+    /// @notice Emitted when ZGT claiming state is changed by admin
+    event ActionZGTClaimingPaused(bool state);
+
     /// @notice The initial ZGT index for a market
     uint224 public constant zgtInitialIndex = 1e36;
 
@@ -1308,6 +1311,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param suppliers Whether or not to claim ZGT earned by supplying
      */
     function claimZGT(address[] memory holders, ZKToken[] memory zkTokens, bool borrowers, bool suppliers) public {
+        require(!zgtClaimingPaused, "Claiming is paused");
+
         for (uint i = 0; i < zkTokens.length; i++) {
             ZKToken zkToken = zkTokens[i];
             require(markets[address(zkToken)].isListed, "market must be listed");
@@ -1398,6 +1403,17 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         zgtContributorSpeeds[contributor] = zgtSpeed;
 
         emit ContributorZGTSpeedUpdated(contributor, zgtSpeed);
+    }
+
+    /**
+     * @notice Set ZGT claiming pause/unpause state
+     */
+    function _setZGTClaimingPaused(bool state) external {
+        // Check caller is admin
+    	require(msg.sender == admin, "no admin");
+
+        zgtClaimingPaused = state;
+        emit ActionZGTClaimingPaused(state);
     }
 
     /**

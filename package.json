@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "deploy": "yarn hardhat deploy-zksync",
+    "sim-compile": "NODE_ENV=sim-compile yarn hardhat compile",
     "test": "NODE_ENV=test hardhat test"
   },
   "devDependencies": {
