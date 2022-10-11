@@ -1,17 +1,21 @@
 require('@nomiclabs/hardhat-ethers')
-require("@nomiclabs/hardhat-waffle")
 require("@nomiclabs/hardhat-web3");
-require("@nomiclabs/hardhat-truffle5");
+
+import "@typechain/hardhat";
+import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-toolbox";
+import "hardhat-deploy";
+require("dotenv").config();
 
 // During the development compiling with zksync solc takes very long time.
 // solution is to exclute the zksync solc library and just use the 
 // solidy compile. 
-if (process.env.NODE_ENV !== 'sim-compile') {
+if (process.env.NODE_ENV !== 'sim-compile' && process.env.NODE_ENV !== 'test') {
   require('@matterlabs/hardhat-zksync-solc')
   require('@matterlabs/hardhat-zksync-deploy')
 }
-require("dotenv").config();
-
 
 module.exports = {
   zksolc: {
@@ -31,8 +35,12 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      zksync: true
-    }
+      zksync: true,
+      chainId: 56,
+      forking: {
+        url: "https://bsc-dataseed.binance.org/",
+      }
+    },
   },
   solidity: {
     compilers: [
