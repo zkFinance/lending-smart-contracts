@@ -245,6 +245,7 @@ abstract contract ZKErc20Interface is ZKErc20Storage {
     function redeem(uint redeemTokens) virtual external returns (uint);
     function redeemUnderlying(uint redeemAmount) virtual external returns (uint);
     function borrow(uint borrowAmount) virtual external returns (uint);
+    function borrowBehalf(address receiver, uint borrowAmount) virtual external returns (uint);
     function repayBorrow(uint repayAmount) virtual external returns (uint);
     function repayBorrowBehalf(address borrower, uint repayAmount) virtual external returns (uint);
     function liquidateBorrow(address borrower, uint repayAmount, ZKTokenInterface zkTokenCollateral) virtual external returns (uint);

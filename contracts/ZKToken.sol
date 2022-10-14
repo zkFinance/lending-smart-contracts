@@ -555,14 +555,26 @@ abstract contract ZKToken is ZKTokenInterface, ExponentialNoError, TokenErrorRep
     function borrowInternal(uint borrowAmount) internal nonReentrant {
         accrueInterest();
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
-        borrowFresh(payable(msg.sender), borrowAmount);
+        borrowFresh(payable(msg.sender), payable(msg.sender), borrowAmount);
+    }
+
+    /**
+      * @notice Sender borrows assets from the protocol to a different address
+      * @param receiver The account where the borrowed amount will be send to
+      * @param borrowAmount The amount of the underlying asset to borrow
+      */
+    function borrowBehalfInternal(address receiver, uint borrowAmount) internal nonReentrant {
+        accrueInterest();
+        // borrowFresh emits borrow-specific logs on errors, so we don't need to
+        borrowFresh(payable(msg.sender), payable(receiver), borrowAmount);
     }
 
     /**
       * @notice Users borrow assets from the protocol to their own address
       * @param borrowAmount The amount of the underlying asset to borrow
+      * @param receiver The account where the borrowed amount will be send to
       */
-    function borrowFresh(address payable borrower, uint borrowAmount) internal {
+    function borrowFresh(address payable borrower, address payable receiver, uint borrowAmount) internal {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
@@ -606,7 +618,7 @@ abstract contract ZKToken is ZKTokenInterface, ExponentialNoError, TokenErrorRep
          *  On success, the zkToken borrowAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
          */
-        doTransferOut(borrower, borrowAmount);
+        doTransferOut(receiver, borrowAmount);
 
         /* We emit a Borrow event */
         emit Borrow(borrower, borrowAmount, accountBorrowsNew, totalBorrowsNew);

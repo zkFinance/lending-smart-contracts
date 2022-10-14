@@ -84,6 +84,17 @@ contract ZKErc20 is ZKToken, ZKErc20Interface {
     }
 
     /**
+      * @notice Sender borrows assets from the protocol to a different address
+      * @param receiver The account where the borrowed amount will be send to
+      * @param borrowAmount The amount of the underlying asset to borrow
+      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+      */
+    function borrowBehalf(address receiver, uint borrowAmount) override external returns (uint) {
+        borrowBehalfInternal(receiver, borrowAmount);
+        return NO_ERROR;
+    }
+
+    /**
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay, or -1 for the full outstanding amount
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)

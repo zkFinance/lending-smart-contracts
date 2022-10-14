@@ -69,12 +69,23 @@ contract ZKEther is ZKToken {
     }
 
     /**
-      * @notice Sender borrows assets from the protocol to their own address
-      * @param borrowAmount The amount of the underlying asset to borrow
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function borrow(uint borrowAmount) external returns (uint) {
         borrowInternal(borrowAmount);
+        return NO_ERROR;
+    }
+
+    /**
+     * @notice Sender borrows assets from the protocol to a different address
+     * @param receiver The account where the borrowed amount will be send to
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function borrowBehalf(address receiver, uint borrowAmount) external returns (uint) {
+        borrowBehalfInternal(receiver, borrowAmount);
         return NO_ERROR;
     }
 
