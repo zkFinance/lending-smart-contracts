@@ -280,22 +280,6 @@ contract ZKFinanceLens is ExponentialNoError {
         );
     }
 
-    /* Write functions */
-
-    function claimRewards(
-        address _comptroller,
-        address[] calldata assets
-    ) external {
-        IComptroller comptroller = IComptroller(_comptroller);
-        if (assets.length > 0) {
-            comptroller.claimZGT(address(msg.sender), assets);
-        } else {
-            comptroller.claimZGT(address(msg.sender));
-        }
-    }
-
-    /* End write functions */
-
     function _getUtilizationRate(address zkToken) internal returns (int256) {
         (bool success, bytes memory returnData) = IZKToken(zkToken).interestRateModel().call(
             abi.encodePacked(

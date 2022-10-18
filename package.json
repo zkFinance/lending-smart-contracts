@@ -4,11 +4,13 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
+    "build": "yarn clean && yarn compile",
     "clean": "yarn hardhat clean",
     "compile": "NODE_ENV=main yarn hardhat compile",
     "sim-compile": "NODE_ENV=sim-compile yarn hardhat compile",
     "deploy": "yarn hardhat deploy-zksync",
-    "test": "NODE_ENV=test hardhat test"
+    "test": "NODE_ENV=test hardhat test",
+    "coverage": "npx hardhat coverage"
   },
   "devDependencies": {
     "@defi-wonderland/smock": "^2.2.0",
@@ -34,6 +36,7 @@
     "dotenv": "^16.0.3",
     "ethers": "^5.6.9",
     "hardhat": "^2.10.1",
+    "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.14",
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.8.2",
