@@ -8,7 +8,7 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 import {
-  Comptroller, Comptroller__factory, PriceOracle,
+  Comptroller, Comptroller__factory, PriceOracle, ComptrollerLens, ComptrollerLens__factory,
   ZKToken, EIP20Interface, EIP20Interface__factory, ZGT
 } from "../../typechain-types";
 
@@ -18,6 +18,7 @@ import { ComptrollerErrorReporter } from "../../utils/Errors";
 type SimpleComptrollerFixture = {
   oracle: FakeContract<PriceOracle>,
   // accessControl: FakeContract<IAccessControlManager>,
+  comptrollerLens: MockContract<ComptrollerLens>,
   comptroller: MockContract<Comptroller>
 };
 
@@ -25,12 +26,15 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   const oracle = await smock.fake<PriceOracle>("PriceOracle");
   // const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   // accessControl.isAllowedToCall.returns(true);
+  const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
   const comptroller = await ComptrollerFactory.deploy();
+  const comptrollerLens = await ComptrollerLensFactory.deploy();
   // await comptroller._setAccessControl(accessControl.address);
+  await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
   await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
-  return { oracle, comptroller};
+  return { oracle, comptroller, comptrollerLens};
 }
 
 function configureOracle(oracle: FakeContract<PriceOracle>) {
@@ -105,7 +109,44 @@ describe("Comptroller", () => {
     testZeroAddress('_setPriceOracle', [constants.AddressZero]);
     testZeroAddress('_setCollateralFactor', [constants.AddressZero, 0]);
     testZeroAddress('_setZGTSpeeds', [[constants.AddressZero], [0], [0]]);
+    testZeroAddress('_setComptrollerLens', [constants.AddressZero]);
   })
+
+  describe("_setComptrollerLens", () => {
+    let comptroller: MockContract<Comptroller>;
+    let comptrollerLens: MockContract<ComptrollerLens>;
+
+    type Contracts = {
+      comptrollerLens: MockContract<ComptrollerLens>,
+      comptroller: MockContract<Comptroller>
+    };
+
+    async function deploy(): Promise<Contracts> {
+      const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+      const comptroller = await ComptrollerFactory.deploy();
+      const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
+      const comptrollerLens = await ComptrollerLensFactory.deploy();
+      return { comptroller, comptrollerLens };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, comptrollerLens } = await loadFixture(deploy));
+    });
+
+    it("fails if not called by admin", async () => {
+      await expect(
+        comptroller.connect(accounts[0])._setComptrollerLens(comptrollerLens.address)
+      ).to.be.revertedWith("only admin");
+    });
+
+    it("should fire an event", async () => {
+      const { comptroller, comptrollerLens } = await loadFixture(deploy);
+      const oldComptrollerLensAddress = await comptroller.comptrollerLens();
+      expect(await comptroller._setComptrollerLens(comptrollerLens.address))
+        .to.emit(comptroller, "NewComptrollerLens")
+        .withArgs(oldComptrollerLensAddress, comptrollerLens.address);
+    });
+  });
 
   describe("_setPriceOracle", () => {
     let comptroller: MockContract<Comptroller>;
@@ -128,7 +169,7 @@ describe("Comptroller", () => {
 
     it("fails if called by non-admin", async () => {
       await expect(comptroller.connect(accounts[0])._setPriceOracle(oracle.address))
-        .to.be.revertedWith("only admin can");
+        .to.be.revertedWith("only admin");
       expect(await comptroller.oracle()).to.equal(oracle.address);
     });
 
@@ -149,7 +190,7 @@ describe("Comptroller", () => {
 
     it("fails if not called by admin", async () => {
       await expect(comptroller.connect(accounts[0])._setCloseFactor(1))
-        .to.be.revertedWith("only admin can");
+        .to.be.revertedWith("only admin");
     });
   });
 
@@ -315,7 +356,7 @@ describe("Comptroller", () => {
 
     it("should not allow you to claim ZGT", async () => {
       await expect(comptroller["claimZGT(address)"](await root.getAddress()))
-        .to.be.revertedWith("Claiming is paused");
+        .to.be.revertedWith("paused");
     });
   })
 });

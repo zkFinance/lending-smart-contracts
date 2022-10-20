@@ -10,7 +10,8 @@
     "sim-compile": "NODE_ENV=sim-compile yarn hardhat compile",
     "deploy": "yarn hardhat deploy-zksync",
     "test": "NODE_ENV=test hardhat test",
-    "coverage": "npx hardhat coverage"
+    "coverage": "npx hardhat coverage",
+    "size-contracts": "hardhat size-contracts"
   },
   "devDependencies": {
     "@defi-wonderland/smock": "^2.2.0",

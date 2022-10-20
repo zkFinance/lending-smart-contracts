@@ -26,16 +26,16 @@ if (process.env.NODE_ENV !== 'sim-compile' && process.env.NODE_ENV !== 'test') {
 module.exports = {
   zksolc: {
     version: '1.2.0',
-    // compilerSource: 'binary',
-    compilerSource: "docker",
+    compilerSource: 'binary',
+    // compilerSource: "docker",
     settings: {
       optimizer: {
         enabled: true,
       },
-      experimental: {
-        dockerImage: "matterlabs/zksolc",
-        tag: "v1.2.0"
-      }
+      // experimental: {
+      //   dockerImage: "matterlabs/zksolc",
+      //   tag: "v1.2.0"
+      // }
     },
   },
   zkSyncDeploy: {
