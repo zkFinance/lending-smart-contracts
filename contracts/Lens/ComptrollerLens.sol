@@ -197,7 +197,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address comptroller,
         address zkTokenCollateral,
         address zkTokenBorrowed,
-        uint seizeTokens) external returns (uint) {
+        uint seizeTokens) external view returns (uint) {
 
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!Comptroller(comptroller).seizeGuardianPaused(), "seize paused");
@@ -217,7 +217,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         return uint(Error.NO_ERROR);
     }
 
-    function checkPartialBorrowAllowedAndReturn(address comptroller, address zkToken, address borrower, uint borrowAmount) override external returns (uint) {
+    function checkPartialBorrowAllowedAndReturn(address comptroller, address zkToken, address borrower, uint borrowAmount) override external view returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!Comptroller(comptroller).borrowGuardianPaused(zkToken), "borrow is paused");
         

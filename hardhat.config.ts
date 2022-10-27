@@ -8,34 +8,31 @@ import "@nomiclabs/hardhat-etherscan";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-contract-sizer"
-import "hardhat-deploy";
+// import "hardhat-deploy";
+import "@nomiclabs/hardhat-truffle5";
 import "./tasks/deploy-base-contracts";
 import "./tasks/deploy-zkLens";
 import "./tasks/send-eth-to-l2";
 import "./tasks/deploy-zkToken";
+require('@matterlabs/hardhat-zksync-deploy')
 
 
 // During the development compiling with zksync solc takes very long time.
 // solution is to exclute the zksync solc library and just use the 
 // solidy compile. 
-if (process.env.NODE_ENV !== 'sim-compile' && process.env.NODE_ENV !== 'test') {
+
+if (process.env.NODE_ENV === 'main') {
   require('@matterlabs/hardhat-zksync-solc')
-  require('@matterlabs/hardhat-zksync-deploy')
 }
 
 module.exports = {
   zksolc: {
     version: '1.2.0',
     compilerSource: 'binary',
-    // compilerSource: "docker",
     settings: {
       optimizer: {
         enabled: true,
-      },
-      // experimental: {
-      //   dockerImage: "matterlabs/zksolc",
-      //   tag: "v1.2.0"
-      // }
+      }
     },
   },
   zkSyncDeploy: {
@@ -44,13 +41,21 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      zksync: true
+      zksync: false,
+      chainId: 56,
+      forking: {
+        url: "https://bsc.getblock.io/mainnet",
+        httpHeaders: { "x-api-key": "2807760a-cd4b-4d38-af68-cd12d9031698" },
+      },
+      timeout: 14000000,
+      accounts: { mnemonic: process.env.MNEMONIC }
     },
-    // test: {
-    //   url: "https://bsc-dataseed.binance.org/",
-    //   chainId: 56,
-    //   accounts: { mnemonic: process.env.MNEMONIC }
-    // }
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      timeout: 1400000,
+      gasPrice: 10000000000,
+      accounts: { mnemonic: process.env.MNEMONIC }
+    },
   },
   solidity: {
     compilers: [
@@ -60,6 +65,11 @@ module.exports = {
           optimizer: {
             enabled: true,
             runs: 200
+          },
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"]
+            }
           }
         }
       }

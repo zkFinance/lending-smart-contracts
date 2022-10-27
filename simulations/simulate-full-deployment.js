@@ -1,5 +1,5 @@
 /*
-  npx hardhat run simulations/simulate-full-deployment.js --network hardhat
+  npx hardhat run simulations/simulate-full-deployment.js --network localhost
 */
 
 const { expect, web3 } = require("hardhat");
@@ -22,23 +22,31 @@ async function sim() {
     let comptroller = await deploy("Comptroller").send({ from: admin.address });
     let unitroller = await deploy("Unitroller").send({ from: admin.address });
 
+    console.log(unitroller._address)
+
     // Link Comptroller to Unitroller proxy
     await unitroller.methods._setPendingImplementation(comptroller._address).send({ from: admin.address })
     await comptroller.methods._become(unitroller._address).send({ from: admin.address })
     comptroller = getContractAt('Comptroller', unitroller._address);
 
+
     // Set close factor to 0.5%
     await comptroller.methods._setCloseFactor(ethers.utils.parseEther("0.5")).send({ from: admin.address })
-
     // Set liquidation incentive to 10%
     await comptroller.methods._setLiquidationIncentive(ethers.utils.parseEther("1.1")).send({ from: admin.address })
+    
+    let comoptrollerLens = await deploy("ComptrollerLens").send({ from: admin.address });
+
+    // Set the comptroller lens
+    await comptroller.methods._setComptrollerLens(comoptrollerLens._address).send({ from: admin.address })
 
     // Deploy oracle and set it in Comptroller
     const oracle = await deploy("ZKFinanceChainlinkOracle").send({ from: admin.address });
     await comptroller.methods._setPriceOracle(oracle._address).send({ from: admin.address })
-
+    
     // Deploy JumpRateModelV2
     const jumpRateModelV2 = await deploy("JumpRateModelV2", ethers.utils.parseEther("0"), ethers.utils.parseEther("0.12"), ethers.utils.parseEther("2.8"), ethers.utils.parseEther("0.8"), admin.address).send({ from: admin.address });
+
 
     // Deploy ZKErc20Delegate
     const zkErc20Delegate = await deploy("ZKErc20Delegate").send({ from: admin.address });
@@ -57,6 +65,7 @@ async function sim() {
 }
 
 async function deployToken(underlyingAddress, comptroller, jumpRateModelV2, oracle, zkErc20Delegate, exchangeRate, name, symbol, oraclePrice, reserveFactor, collateralFactor, supplierSpeed, borrowerSpeed, admin) {
+    console.log(underlyingAddress, comptroller._address, jumpRateModelV2._address, exchangeRate, name, symbol, 8, admin.address, zkErc20Delegate._address, "0x")
     const zkToken = await deploy("ZKErc20Delegator", underlyingAddress, comptroller._address, jumpRateModelV2._address, exchangeRate, name, symbol, 8, admin.address, zkErc20Delegate._address, "0x").send({ from: admin.address });
     await zkToken.methods._setReserveFactor(reserveFactor).send({ from: admin.address })
     await oracle.methods.setDirectPrice(underlyingAddress, oraclePrice).send({ from: admin.address })
