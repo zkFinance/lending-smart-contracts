@@ -38,7 +38,10 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
   const zkEther_artifact = await loatArtifact(deployer, 'ZKEther', [AddressZero(), AddressZero(), 0, "", "", 8, owner])
 
   // zkFinance Lens
-  const zkFinanceLens_artifact = await loatArtifact(deployer, 'ZKFinanceLens', [])
+  const zkFinanceLens_artifact = await loatArtifact(deployer, 'ZKFinanceLens', [AddressZero()])
+
+  // zkFinance ZGT token
+  const zgt_artifact = await loatArtifact(deployer, 'ZGT', [])
 
   if (onlyEstimateGas) {
     return
@@ -93,6 +96,9 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
   const zkEtherContract = await deployer.deploy(zkEther_artifact, [...zkEther_params])
   console.log(`${zkEther_artifact.contractName} was deployed to ${zkEtherContract.address}`)
 
+  const zgt = await deployer.deploy(zgt_artifact, [])
+  console.log(`${zgt_artifact.contractName} was deployed to ${zkEtherContract.address}`)
+
   tx = await chainLinkOracleContract.setDirectPrice(zkEtherContract.address, convertToUnit("1200", 18))
   await tx.wait()
   console.log("Oracle price for ETH was set successfully")
@@ -113,7 +119,7 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
   await tx.wait()
   console.log("ZGT speed for ETH was set successfully")
 
-  const zkFinanceLens = await deployer.deploy(zkFinanceLens_artifact, [])
+  const zkFinanceLens = await deployer.deploy(zkFinanceLens_artifact, [zgt.address])
 
   console.log("######################################")
   console.log(`${comptroller_artifact.contractName} was deployed to ${comptrollerContract.address}`)

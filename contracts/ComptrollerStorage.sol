@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import "./ZKToken.sol";
 import "./PriceOracle.sol";
+import "./ComptrollerLensInterface.sol";
 
 contract UnitrollerAdminStorage {
     /**
@@ -53,13 +54,17 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
     mapping(address => ZKToken[]) public accountAssets;
 
     struct Market {
-        // Whether or not this market is listed
+        /// @notice Whether or not this market is listed
         bool isListed;
-        //  Multiplier representing the most one can borrow against their collateral in this market.
-        //  For instance, 0.9 to allow borrowing 90% of collateral value.
-        //  Must be between 0 and 1, and stored as a mantissa.
+
+        /**
+         * @notice Multiplier representing the most one can borrow against their collateral in this market.
+         *  For instance, 0.9 to allow borrowing 90% of collateral value.
+         *  Must be between 0 and 1, and stored as a mantissa.
+         */
         uint256 collateralFactorMantissa;
-        // Per-market mapping of "accounts in this asset"
+
+        /// @notice Per-market mapping of "accounts in this asset"
         mapping(address => bool) accountMembership;
     }
 
@@ -136,4 +141,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
 
     /// @notice Pause/Unpause ZGT claiming action
     bool public zgtClaimingPaused;
+
+    /// @notice Comptroller lens for calculation functions
+    ComptrollerLensInterface public comptrollerLens;
 }
