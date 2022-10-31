@@ -8,7 +8,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy'
 import { loatArtifact } from '../utils/loadArtifact';
 
-export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?: boolean, verify?: boolean) {
+export default async function (hre: HardhatRuntimeEnvironment, zgtAddress: string, onlyEstimateGas?: boolean, verify?: boolean) {
   console.log(`Running deploy script for the zkFinance Lens`)
 
   // Initialize the wallet.
@@ -16,7 +16,7 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
 
   // Create deployer object and load the artifact of the contract you want to deploy.
   const deployer = new Deployer(hre, wallet)
-  const zkFinanceLens_artifact = await loatArtifact(deployer, 'ZKFinanceLens', [])
+  const zkFinanceLens_artifact = await loatArtifact(deployer, 'ZKFinanceLens', [zgtAddress])
 
   if (!onlyEstimateGas) {
     const zkFinanceLens = await deployer.deploy(zkFinanceLens_artifact, [])

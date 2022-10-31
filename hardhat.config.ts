@@ -42,10 +42,9 @@ module.exports = {
   networks: {
     hardhat: {
       zksync: false,
-      chainId: 56,
+      chainId: 5,
       forking: {
-        url: "https://bsc.getblock.io/mainnet",
-        httpHeaders: { "x-api-key": "2807760a-cd4b-4d38-af68-cd12d9031698" },
+        url: `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
       },
       timeout: 14000000,
       accounts: { mnemonic: process.env.MNEMONIC }
@@ -54,6 +53,11 @@ module.exports = {
       url: "http://127.0.0.1:8545",
       timeout: 1400000,
       gasPrice: 10000000000,
+      accounts: { mnemonic: process.env.MNEMONIC }
+    },
+    testnet_goerli: {
+      url: `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+      chainId: 5,
       accounts: { mnemonic: process.env.MNEMONIC }
     },
   },

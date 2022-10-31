@@ -12,8 +12,11 @@ contract ZKFinanceLens is ExponentialNoError {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    // TODO: provide the correct ZGT address
-    IZGTToken public constant zgt = IZGTToken(address(0));
+    IZGTToken public zgt;
+
+    constructor(IZGTToken _zgt) {
+        zgt = _zgt;
+    }
 
     struct ZKTokenBalances {
         address zkToken;
