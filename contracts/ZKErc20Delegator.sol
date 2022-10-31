@@ -117,6 +117,17 @@ contract ZKErc20Delegator is ZKTokenInterface, ZKErc20Interface, ZKDelegatorInte
     }
 
     /**
+      * @notice Sender borrows assets from the protocol to a different address
+      * @param receiver the account where the borrowed amount will be send to
+      * @param borrowAmount The amount of the underlying asset to borrow
+      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+      */
+    function borrowBehalf(address receiver, uint borrowAmount) override external returns (uint) {
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("borrowBehalf(address,uint256)", receiver, borrowAmount));
+        return abi.decode(data, (uint));
+    }
+
+    /**
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay, or -1 for the full outstanding amount
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)

@@ -1,5 +1,4 @@
 pragma solidity ^0.8.10;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -280,22 +279,6 @@ contract ZKFinanceLens is ExponentialNoError {
             IInterestRateModel(IZKToken(zkToken).interestRateModel()).getBorrowRate(cash, totalBorrows, totalReserves)
         );
     }
-
-    /* Write functions */
-
-    function claimRewards(
-        address _comptroller,
-        address[] calldata assets
-    ) external {
-        IComptroller comptroller = IComptroller(_comptroller);
-        if (assets.length > 0) {
-            comptroller.claimZGT(address(msg.sender), assets);
-        } else {
-            comptroller.claimZGT(address(msg.sender));
-        }
-    }
-
-    /* End write functions */
 
     function _getUtilizationRate(address zkToken) internal returns (int256) {
         (bool success, bytes memory returnData) = IZKToken(zkToken).interestRateModel().call(

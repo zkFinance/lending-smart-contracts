@@ -77,6 +77,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     // @notice Emitted when liquidator adress is changed
     event NewLiquidatorContract(address oldLiquidatorContract, address newLiquidatorContract);
     
+    /// @notice Emitted when ZGT claiming state is changed by admin
+    event ActionZGTClaimingPaused(bool state);
+
     /// @notice The initial ZGT index for a market
     uint224 public constant zgtInitialIndex = 1e36;
 
@@ -91,6 +94,21 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     constructor() {
         admin = msg.sender;
+    }
+
+    /// @notice Reverts if the caller is not admin
+    function ensureAdmin() private view {
+        require(msg.sender == admin, "only admin can");
+    }
+
+    /// @notice Checks the passed address is nonzero
+    function ensureNonzeroAddress(address someone) private pure {
+        require(someone != address(0), "can't be zero address");
+    }
+
+    /// @notice Reverts if the market is not listed
+    function ensureListed(Market storage market) private view {
+        require(market.isListed, "market not listed");
     }
 
     /*** Assets You Are In ***/
@@ -828,10 +846,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
     function _setPriceOracle(PriceOracle newOracle) public returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PRICE_ORACLE_OWNER_CHECK);
-        }
+       // Check caller is admin
+        ensureAdmin();
+        ensureNonzeroAddress(address(newOracle));
 
         // Track the old oracle for the comptroller
         PriceOracle oldOracle = oracle;
@@ -853,7 +870,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
       */
     function _setCloseFactor(uint newCloseFactorMantissa) external returns (uint) {
         // Check caller is admin
-    	require(msg.sender == admin, "only admin can set close factor");
+        ensureAdmin();
 
         uint oldCloseFactorMantissa = closeFactorMantissa;
         closeFactorMantissa = newCloseFactorMantissa;
@@ -871,15 +888,12 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
       */
     function _setCollateralFactor(ZKToken zkToken, uint newCollateralFactorMantissa) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK);
-        }
+        ensureAdmin();
+        ensureNonzeroAddress(address(zkToken));
 
         // Verify market is listed
         Market storage market = markets[address(zkToken)];
-        if (!market.isListed) {
-            return fail(Error.MARKET_NOT_LISTED, FailureInfo.SET_COLLATERAL_FACTOR_NO_EXISTS);
-        }
+        ensureListed(market);
 
         Exp memory newCollateralFactorExp = Exp({mantissa: newCollateralFactorMantissa});
 
@@ -912,9 +926,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
       */
     function _setLiquidationIncentive(uint newLiquidationIncentiveMantissa) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK);
-        }
+        ensureAdmin();
+
+        require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
         // Save current value for use in log
         uint oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
@@ -1308,6 +1322,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param suppliers Whether or not to claim ZGT earned by supplying
      */
     function claimZGT(address[] memory holders, ZKToken[] memory zkTokens, bool borrowers, bool suppliers) public {
+        require(!zgtClaimingPaused, "Claiming is paused");
+
         for (uint i = 0; i < zkTokens.length; i++) {
             ZKToken zkToken = zkTokens[i];
             require(markets[address(zkToken)].isListed, "market must be listed");
@@ -1375,6 +1391,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setZGTSpeeds invalid input");
 
         for (uint i = 0; i < numTokens; ++i) {
+            ensureNonzeroAddress(address(zkTokens[i]));
             setZGTSpeedInternal(zkTokens[i], supplySpeeds[i], borrowSpeeds[i]);
         }
     }
@@ -1398,6 +1415,17 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         zgtContributorSpeeds[contributor] = zgtSpeed;
 
         emit ContributorZGTSpeedUpdated(contributor, zgtSpeed);
+    }
+
+    /**
+     * @notice Set ZGT claiming pause/unpause state
+     */
+    function _setZGTClaimingPaused(bool state) external {
+        // Check caller is admin
+    	require(msg.sender == admin, "no admin");
+
+        zgtClaimingPaused = state;
+        emit ActionZGTClaimingPaused(state);
     }
 
     /**

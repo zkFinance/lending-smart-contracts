@@ -1,22 +1,25 @@
-import { Wallet } from 'zksync-web3'
+/*
+  yarn deploy --script deploy-lens.ts
+*/
+
+import { Wallet, Provider, utils } from 'zksync-web3'
+import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy'
-import fs from 'fs'
+import { loatArtifact } from '../utils/loadArtifact';
 
-const PRIVATE_KEY: string = fs.readFileSync('.secret').toString()
-
-export default async function (hre: HardhatRuntimeEnvironment) {
+export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?: boolean, verify?: boolean) {
   console.log(`Running deploy script for the zkFinance Lens`)
 
   // Initialize the wallet.
-  const wallet = new Wallet(PRIVATE_KEY)
+  const wallet = new Wallet(process.env.PRIVATE_KEY!)
+
+  // Create deployer object and load the artifact of the contract you want to deploy.
   const deployer = new Deployer(hre, wallet)
-  const owner = await wallet.getAddress()
+  const zkFinanceLens_artifact = await loatArtifact(deployer, 'ZKFinanceLens', [])
 
-  // Comp
-  const artifactZKFinanceLens = await deployer.loadArtifact('ZGT')
-  const zkFinanceLens = await deployer.deploy(artifactZKFinanceLens, [])
-  const zkFinanceLensAddress = zkFinanceLens.address
-
-  console.log(`${artifactZKFinanceLens.contractName} was deployed to ${zkFinanceLensAddress}`)
+  if (!onlyEstimateGas) {
+    const zkFinanceLens = await deployer.deploy(zkFinanceLens_artifact, [])
+    console.log(`${zkFinanceLens_artifact.contractName} was deployed to ${zkFinanceLens.address}`)
+  }
 }
