@@ -12,7 +12,16 @@ async function sim() {
     const [admin] = await ethers.getSigners();
     // await impersonate(admin.address);
     let tx;
+    d = getContractAt('ZKEther', "0x2B40Cd18218f6f4DbC88eB0C31522df68a3f9F22");
+    console.log(await d.methods.interestRateModel().call())
+    
+    //zkToken = await deploy("ZKEther", comptroller._address, jumpRateModelV2._address, exchangeRate, name, symbol, 8, admin.address).send({ from: admin.address });
+    await hre.run("verify:verify", {
+        address: "0x2B40Cd18218f6f4DbC88eB0C31522df68a3f9F22",
+        constructorArguments: ["0x0434Bdb3fA1f329b3fa18fc13B5F379434015d88", "0x0Ff15fb7169D864C3de3Ec070C7Aa8Fc415A4d08", calculateExchangeRate(18), 'zkFinance ETH Token', 'zkETH', 8, admin.address]
+    })
 
+    return
     // Depoly ZGT token
     let zgt = await deploy("ZGT", admin.address).send({ from: admin.address });
     console.log(`***Deployed ZGT token to ${zgt._address}`);
