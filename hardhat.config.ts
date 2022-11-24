@@ -78,6 +78,17 @@ module.exports = {
         }
       }
     ],
+    overrides: {
+      "contracts/Governance/ZGT.sol": {
+        version: "0.8.17",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 999999,
+          },
+        },
+      },
+    }
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
