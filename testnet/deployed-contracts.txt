@@ -1,0 +1,13 @@
+Comptroller was deployed to 0x461ff13694AA20Beb13c90065032956964d87220
+JumpRateModelV2 was deployed to 0xc630F71920B22AA706F0eB5b3d5cD29faF04C112
+ZKErc20Delegate was deployed to 0x9E4f198853af78eaDF8B0a79dEEf01Ce53ad8030
+zkETH was deployed to 0x6dcF3e08c80b57C8eB7B5fFD7CA6Ecdd895DB60e
+ZKFinanceLens was deployed to 0xb8cFE7550e56Cf8ca8Ad27Ee1fb3de814e714D83
+
+
+
+Oracle price for ETH was set successfully
+Collateral factor for ETH was set successfully
+Reserve factor for ETH was set successfully
+Collateral factor for ETH was set successfully
+ZGT speed for ETH was set successfully

@@ -21,13 +21,11 @@ require('@matterlabs/hardhat-zksync-deploy')
 // solution is to exclute the zksync solc library and just use the 
 // solidy compile. 
 
-if (process.env.NODE_ENV === 'main') {
-  require('@matterlabs/hardhat-zksync-solc')
-}
+require('@matterlabs/hardhat-zksync-solc')
 
 module.exports = {
   zksolc: {
-    version: '1.2.0',
+    version: '1.2.1',
     compilerSource: 'binary',
     settings: {
       optimizer: {
@@ -41,7 +39,7 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      zksync: false,
+      zksync: true,
       chainId: 5,
       forking: {
         url: `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
@@ -62,34 +60,42 @@ module.exports = {
     },
   },
   solidity: {
-    compilers: [
-      {
-        version: "0.8.17",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          },
-          outputSelection: {
-            "*": {
-              "*": ["storageLayout"]
-            }
-          }
-        }
-      }
-    ],
-    overrides: {
-      "contracts/Governance/ZGT.sol": {
-        version: "0.8.17",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 999999,
-          },
-        },
-      },
-    }
+    version: "0.8.17"
   },
+  // solidity: {
+  //   compilers: [
+  //     {
+  //       version: "0.8.17",
+  //       settings: {
+  //         optimizer: {
+  //           enabled: true,
+  //           runs: 200
+  //         },
+  //         outputSelection: {
+  //           "*": {
+  //             "*": ["storageLayout"]
+  //           }
+  //         }
+  //       }
+  //     }
+  //   ],
+  //   overrides: {
+  //     "contracts/Governance/ZGT.sol": {
+  //       version: "0.8.17",
+  //       settings: {
+  //         optimizer: {
+  //           enabled: true,
+  //           runs: 999999,
+  //         },
+  //         outputSelection: {
+  //           "*": {
+  //             "*": ["storageLayout"]
+  //           }
+  //         }
+  //       },
+  //     },
+  //   }
+  // },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
