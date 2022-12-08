@@ -1307,6 +1307,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @return The address of ZGT
      */
     function getZGTAddress() virtual public view returns (address) {
-        return 0x0499b92B0F5883130b09A0958D072787904Dc9F3;
+        return 0xD72b5ea17beC7fe40F59186BbbCa827B24A00051;
     }
 }

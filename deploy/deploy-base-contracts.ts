@@ -97,7 +97,7 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
   console.log(`${zkEther_artifact.contractName} was deployed to ${zkEtherContract.address}`)
 
   const zgt = await deployer.deploy(zgt_artifact, [])
-  console.log(`${zgt_artifact.contractName} was deployed to ${zkEtherContract.address}`)
+  console.log(`${zgt_artifact.contractName} was deployed to ${zgt.address}`)
 
   tx = await chainLinkOracleContract.setDirectPrice(zkEtherContract.address, convertToUnit("1200", 18))
   await tx.wait()
@@ -127,6 +127,7 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
   console.log(`${zkErc20Delegate_artifact.contractName} was deployed to ${zkErc20DelegateContract.address}`)
   console.log(`zkETH was deployed to ${zkEtherContract.address}`)
   console.log(`${zkFinanceLens_artifact.contractName} was deployed to ${zkFinanceLens.address}`)
+  console.log(`${zgt.contractName} was deployed to ${zgt.address}`)
   console.log("######################################")
 
   if (verify) {
