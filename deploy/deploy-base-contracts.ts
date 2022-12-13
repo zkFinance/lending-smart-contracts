@@ -9,6 +9,7 @@ import { Deployer } from '@matterlabs/hardhat-zksync-deploy'
 import { loatArtifact } from '../utils/loadArtifact';
 import { convertToUnit } from '../utils/convertToUnit';
 import { AddressZero } from '../utils/address-zero';
+import { GetzkSyncSigner } from '../utils/get-zksync-signer';
 
 export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?: boolean, verify?: boolean) {
   console.log(`Running deploy script`)
@@ -63,7 +64,7 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
   console.log(`${comptroller_artifact.contractName} Become called`)
 
   const comptrollerAddress = comptrollerContract.address
-  comptrollerContract = await deployer.hre.ethers.getContractAt("Comptroller", unitrollerContract.address);
+  comptrollerContract = await deployer.hre.ethers.getContractAt("Comptroller", unitrollerContract.address, GetzkSyncSigner(wallet));
 
   // set comptroller variables
   tx = await comptrollerContract._setCloseFactor(convertToUnit("0.5", 18))

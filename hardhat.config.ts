@@ -53,6 +53,11 @@ module.exports = {
       gasPrice: 10000000000,
       accounts: { mnemonic: process.env.MNEMONIC }
     },
+    zkSyncTestnet: {
+      url: "https://zksync2-testnet.zksync.dev",
+      ethNetwork: "goerli", // Can also be the RPC URL of the network (e.g. `https://goerli.infura.io/v3/<API_KEY>`)
+      zksync: true,
+    },
     testnet_goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
       chainId: 5,
