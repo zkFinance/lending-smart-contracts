@@ -1,5 +1,5 @@
 /*
-  yarn deploy --script upgrade-comptroller.ts --network zkSyncTestnet
+  yarn deploy --script upgrade-comptroller.ts --network zkTestnet
 */
 
 import { Wallet, Provider, utils } from 'zksync-web3'

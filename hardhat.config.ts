@@ -1,27 +1,19 @@
 require("dotenv").config();
+require('@matterlabs/hardhat-zksync-deploy')
+require('@matterlabs/hardhat-zksync-solc')
 
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-web3";
 import "@typechain/hardhat";
-import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-contract-sizer"
-// import "hardhat-deploy";
 import "@nomiclabs/hardhat-truffle5";
 import "./tasks/deploy-base-contracts";
 import "./tasks/deploy-zkLens";
 import "./tasks/send-eth-to-l2";
 import "./tasks/deploy-zkToken";
-require('@matterlabs/hardhat-zksync-deploy')
-
-
-// During the development compiling with zksync solc takes very long time.
-// solution is to exclute the zksync solc library and just use the 
-// solidy compile. 
-
-require('@matterlabs/hardhat-zksync-solc')
 
 module.exports = {
   zksolc: {
@@ -32,10 +24,6 @@ module.exports = {
         enabled: true,
       }
     },
-  },
-  zkSyncDeploy: {
-    zkSyncNetwork: "https://zksync2-testnet.zksync.dev",
-    ethNetwork: "goerli"
   },
   networks: {
     hardhat: {
@@ -53,9 +41,9 @@ module.exports = {
       gasPrice: 10000000000,
       accounts: { mnemonic: process.env.MNEMONIC }
     },
-    zkSyncTestnet: {
+    zkTestnet: {
       url: "https://zksync2-testnet.zksync.dev",
-      ethNetwork: "goerli", // Can also be the RPC URL of the network (e.g. `https://goerli.infura.io/v3/<API_KEY>`)
+      ethNetwork: "goerli", // URL of the Ethereum Web3 RPC, or the identifier of the network (e.g. `mainnet` or `goerli`)
       zksync: true,
     },
     testnet_goerli: {
@@ -67,41 +55,7 @@ module.exports = {
   solidity: {
     version: "0.8.17"
   },
-  // solidity: {
-  //   compilers: [
-  //     {
-  //       version: "0.8.17",
-  //       settings: {
-  //         optimizer: {
-  //           enabled: true,
-  //           runs: 200
-  //         },
-  //         outputSelection: {
-  //           "*": {
-  //             "*": ["storageLayout"]
-  //           }
-  //         }
-  //       }
-  //     }
-  //   ],
-  //   overrides: {
-  //     "contracts/Governance/ZGT.sol": {
-  //       version: "0.8.17",
-  //       settings: {
-  //         optimizer: {
-  //           enabled: true,
-  //           runs: 999999,
-  //         },
-  //         outputSelection: {
-  //           "*": {
-  //             "*": ["storageLayout"]
-  //           }
-  //         }
-  //       },
-  //     },
-  //   }
-  // },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
-  },
+  }
 }

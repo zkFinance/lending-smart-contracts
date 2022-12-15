@@ -1,5 +1,5 @@
 /*
-    npx hardhat deploy-base-contracts --network hardhat \
+    npx hardhat deploy-base-contracts --network zkTestnet \
     --only-estimate-gas true \
     --verify false
 */
