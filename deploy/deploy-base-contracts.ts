@@ -102,11 +102,11 @@ export default async function (hre: HardhatRuntimeEnvironment, onlyEstimateGas?:
 
   tx = await chainLinkOracleContract.setDirectPrice(zkEtherContract.address, convertToUnit("1200", 18))
   await tx.wait()
-  console.log("Oracle price for ETH was set successfully")
 
-  tx = await comptrollerContract._setCollateralFactor(zkEtherContract.address, convertToUnit("0.75", 18))
+  tx = await comptrollerContract._supportMarket(zkEtherContract.address)
   await tx.wait()
-  console.log("Collateral factor for ETH was set successfully")
+
+  console.log("Oracle price for ETH was set successfully")
 
   tx = await zkEtherContract._setReserveFactor(convertToUnit("0.25", 18))
   await tx.wait()

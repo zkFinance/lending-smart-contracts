@@ -17,7 +17,7 @@ import "./tasks/deploy-zkToken";
 
 module.exports = {
   zksolc: {
-    version: '1.2.1',
+    version: '1.2.2',
     compilerSource: 'binary',
     settings: {
       optimizer: {

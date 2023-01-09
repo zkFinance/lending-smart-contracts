@@ -22,7 +22,10 @@ contract ZKFinanceChainlinkOracle is WithAdmin, PriceOracle {
         string memory symbol = zkToken.symbol();
 
         if (compareStrings(symbol, "zkETH")) {
-            return getChainlinkPrice(getFeed(symbol));
+
+            // TODO: refactor this before mainnet release
+            return prices[address(zkToken)];
+            // return getChainlinkPrice(getFeed(symbol));
         } 
         else if (compareStrings(symbol, "ZGT")) {
             return prices[address(zkToken)];

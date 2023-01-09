@@ -8,7 +8,7 @@ import { utils, Wallet } from 'zksync-web3'
 import { convertToUnit } from "../utils/convertToUnit";
 
 /*
-    npx hardhat send-eth-to-l2 --network hardhat
+    npx hardhat send-eth-to-l2 --network zkTestnet
 */
 
 task("send-eth-to-l2", "Deploy a zkToken")
@@ -28,7 +28,7 @@ task("send-eth-to-l2", "Deploy a zkToken")
     const depositHandle = await deployer.zkWallet.deposit({
       to: deployer.zkWallet.address,
       token: utils.ETH_ADDRESS,
-      amount: convertToUnit("0.19", 18),
+      amount: convertToUnit("0.5", 18),
     });
 
     // Wait until the deposit is processed on zkSync
